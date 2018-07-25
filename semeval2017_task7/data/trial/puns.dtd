@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!ELEMENT corpus (text+)>
+<!ATTLIST corpus lang CDATA #REQUIRED>
+<!ATTLIST corpus id ID #REQUIRED>
+
+<!ELEMENT text (word+)>
+<!ATTLIST text id ID #REQUIRED>
+
+<!ELEMENT word (#PCDATA)>
+<!ATTLIST word id ID #REQUIRED>
+<!ATTLIST word senses (1|2) "1">
