@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE corpus SYSTEM 'puns.dtd'>
+<corpus lang="en" id="subtask3-homographic">
+  <text id="t_1">
+    <word id="t_1_0" senses="1">I</word>
+    <word id="t_1_1" senses="1">used</word>
+    <word id="t_1_2" senses="1">to</word>
+    <word id="t_1_3" senses="1">be</word>
+    <word id="t_1_4" senses="1">a</word>
+    <word id="t_1_5" senses="1">banker</word>
+    <word id="t_1_6" senses="1">but</word>
+    <word id="t_1_7" senses="1">I</word>
+    <word id="t_1_8" senses="1">lost</word>
+    <word id="t_1_9" senses="2">interest</word>
+    <word id="t_1_10" senses="1">.</word>
+  </text>
+  <text id="t_3">
+    <word id="t_3_0" senses="1">"</word>
+    <word id="t_3_1" senses="1">Quick</word>
+    <word id="t_3_2" senses="1">,</word>
+    <word id="t_3_3" senses="1">dive</word>
+    <word id="t_3_4" senses="1">into</word>
+    <word id="t_3_5" senses="1">those</word>
+    <word id="t_3_6" senses="1">reeds</word>
+    <word id="t_3_7" senses="1">!</word>
+    <word id="t_3_8" senses="1">"</word>
+    <word id="t_3_9" senses="1">Tom</word>
+    <word id="t_3_10" senses="2">rushed</word>
+    <word id="t_3_11" senses="1">.</word>
+  </text>
+</corpus>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE corpus SYSTEM 'puns.dtd'>
+<corpus lang="en" id="subtask3-heterographic">
+  <text id="t_1">
+    <word id="t_1_0" senses="1">When</word>
+    <word id="t_1_1" senses="1">the</word>
+    <word id="t_1_2" senses="1">church</word>
+    <word id="t_1_3" senses="1">bought</word>
+    <word id="t_1_4" senses="1">gas</word>
+    <word id="t_1_5" senses="1">for</word>
+    <word id="t_1_6" senses="1">their</word>
+    <word id="t_1_7" senses="1">annual</word>
+    <word id="t_1_8" senses="1">barbecue</word>
+    <word id="t_1_9" senses="1">,</word>
+    <word id="t_1_10" senses="1">proceeds</word>
+    <word id="t_1_11" senses="1">went</word>
+    <word id="t_1_12" senses="1">from</word>
+    <word id="t_1_13" senses="1">the</word>
+    <word id="t_1_14" senses="1">sacred</word>
+    <word id="t_1_15" senses="1">to</word>
+    <word id="t_1_16" senses="1">the</word>
+    <word id="t_1_17" senses="2">propane</word>
+    <word id="t_1_18" senses="1">.</word>
+  </text>
+  <text id="t_3">
+    <word id="t_3_0" senses="1">"</word>
+    <word id="t_3_1" senses="1">I</word>
+    <word id="t_3_2" senses="1">ate</word>
+    <word id="t_3_3" senses="1">no</word>
+    <word id="t_3_4" senses="1">soap</word>
+    <word id="t_3_5" senses="1">,</word>
+    <word id="t_3_6" senses="1">"</word>
+    <word id="t_3_7" senses="1">Tom</word>
+    <word id="t_3_8" senses="2">lied</word>
+    <word id="t_3_9" senses="1">.</word>
+  </text>
+</corpus>
