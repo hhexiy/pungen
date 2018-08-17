@@ -3,6 +3,7 @@
 import sys
 import xml.etree.ElementTree as ET
 from nltk.corpus import wordnet as wn
+from wordfreq import word_frequency
 
 def parse_xml(infile):
     tree = ET.parse(infile)
@@ -19,6 +20,7 @@ def parse_xml(infile):
 
 def parse_anno(infile, replace=False):
     annotations = []
+    high_freq, low_freq = 0, 0
     with open(infile) as inf:
         for line in inf:
             elems = line.strip().split('\t')
@@ -29,7 +31,10 @@ def parse_anno(infile, replace=False):
             else:
                 elems[1] = elems[1].split('%')[0] 
                 elems[2] = elems[2].split('%')[0] 
+            high_freq +=  word_frequency(elems[1], 'en') > word_frequency(elems[2], 'en')
+            low_freq +=  word_frequency(elems[1], 'en') < word_frequency(elems[2], 'en')
             annotations.append(elems)
+    print('the relative word frequencies:', high_freq, low_freq)
     return annotations
 
 def senset_2_replacement(key):
@@ -62,8 +67,12 @@ if __name__ == '__main__':
     context = int(sys.argv[4])
     assert len(sentences) == len(annotations)
     with open(out_file+'.true', 'w') as tf, open(out_file+'.hypo', 'w') as hf:
+      if homo:
+        of = open(out_file+'.orig', 'w')
       for sent, anno in zip(sentences, annotations):
         sent = [w.lower() for w in sent]
+        lower = max(0, anno[0]-1-context)
+        upper = min(len(sent)+1, anno[0]+context)
         if not homo:
             try:
                 assert sent[anno[0]-1].startswith(anno[1])
@@ -72,10 +81,9 @@ if __name__ == '__main__':
                 continue
             newsent = [anno[2]+w[len(anno[1]):] if (i == anno[0]-1) else w for i, w in enumerate(sent)]
         else:
+            of.write(' '.join(sent[lower:upper]) + '\n')
             sent[anno[0]-1] = anno[1]
             newsent = [anno[2] if (i == anno[0]-1) else w for i, w in enumerate(sent)]
-        lower = max(0, anno[0]-1-context)
-        upper = min(len(sent)+1, anno[0]+context)
         #print(lower, upper, anno[0])
         tf.write(' '.join(sent[lower:upper]) + '\n')
         hf.write(' '.join(newsent[lower:upper]) + '\n')
