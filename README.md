@@ -18,6 +18,7 @@ where similarity is computed by the dot product between TFIDF vectors.
 ```
 python src/retriever.py --doc-file <train_data> --lm-path <lm_model> --path <output> --interactive
 ```
-- train_data: tokenized sentences, one sentence per line.
+- train_data: tokenized sentences, one sentence per line. Tokenized 1B sentences are here: `https://worksheets.codalab.org/bundles/0x364840a62d6b495794354b2f9e849472/`.
 - lm_model: pretrained pytorch model, `https://github.com/pytorch/fairseq/tree/master/examples/language_model`.
+You can download it here: `https://worksheets.codalab.org/bundles/0x08e710512cdf471c8f66f19e70f910ef/`.
 - output: output path to save the retriever. Next time we will directly load from it.
