@@ -31,9 +31,12 @@ def parse_anno(infile, replace=False):
             else:
                 elems[1] = elems[1].split('%')[0] 
                 elems[2] = elems[2].split('%')[0] 
-            high_freq +=  word_frequency(elems[1], 'en') > word_frequency(elems[2], 'en')
-            low_freq +=  word_frequency(elems[1], 'en') < word_frequency(elems[2], 'en')
+            w1f = word_frequency(elems[1], 'en')
+            w2f = word_frequency(elems[2], 'en')
+            high_freq +=  w1f > w2f 
+            low_freq +=  w1f < w2f 
             annotations.append(elems)
+            print(w1f, w2f)
     print('the relative word frequencies:', high_freq, low_freq)
     return annotations
 
@@ -79,11 +82,12 @@ if __name__ == '__main__':
             except:
                 print (sent, sent[anno[0]-1], anno)
                 continue
-            newsent = [anno[2]+w[len(anno[1]):] if (i == anno[0]-1) else w for i, w in enumerate(sent)]
+            sent[anno[0]-1] = '<'+sent[anno[0]-1]+'>'
+            newsent = ['<'+anno[2]+w[len(anno[1])+1:] if (i == anno[0]-1) else w for i, w in enumerate(sent)]
         else:
             of.write(' '.join(sent[lower:upper]) + '\n')
-            sent[anno[0]-1] = anno[1]
-            newsent = [anno[2] if (i == anno[0]-1) else w for i, w in enumerate(sent)]
+            sent[anno[0]-1] = '<'+anno[1]+'>'
+            newsent = ['<'+anno[2]+'>' if (i == anno[0]-1) else w for i, w in enumerate(sent)]
         #print(lower, upper, anno[0])
         tf.write(' '.join(sent[lower:upper]) + '\n')
         hf.write(' '.join(newsent[lower:upper]) + '\n')

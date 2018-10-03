@@ -167,9 +167,11 @@ if __name__ == '__main__':
     else:
         with open(args.keywords, 'r') as fin:
             for line in fin:
-                ids = retriever.query(line.strip(), 5)
-                print(line.strip())
-                for id_ in ids:
-                    print(docs[id_])
-                print('')
+                ids = retriever.query(line.strip(), 10)
+                contents = [docs[id_] for id_ in ids]
+                contents.sort(key = lambda s: len(s), reverse=True)
+#                print(line.strip())
+                for ct in contents[:1]:
+                    print(ct)
+#                print('')
 
