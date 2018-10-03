@@ -16,7 +16,7 @@ Given a query sentence, the retriever returns the top K sentences in the trainin
 where similarity is computed by the dot product between TFIDF vectors.
 
 ```
-python src/retriever.py --doc-file <train_data> --lm-path <lm_model> --path <output> --interactive
+python -m pungen.retriever --doc-file <train_data> --path <output> --overwrite 
 ```
 - train_data: tokenized sentences, one sentence per line. Tokenized 1B sentences are here: `https://worksheets.codalab.org/bundles/0x364840a62d6b495794354b2f9e849472/`.
 - lm_model: pretrained pytorch model, `https://github.com/pytorch/fairseq/tree/master/examples/language_model`.
