@@ -6,6 +6,7 @@ import torch.nn as nn
 
 from torch import LongTensor as LT
 from torch import FloatTensor as FT
+from torch.nn.functional import logsigmoid as ls
 
 
 class Bundler(nn.Module):
@@ -49,12 +50,13 @@ class Word2Vec(Bundler):
 
 class SGNS(nn.Module):
 
-    def __init__(self, embedding, vocab_size=20000, n_negs=20, weights=None):
+    def __init__(self, embedding, vocab_size=20000, n_negs=20, weights=None, pad=None):
         super(SGNS, self).__init__()
         self.embedding = embedding
         self.vocab_size = vocab_size
         self.n_negs = n_negs
         self.weights = None
+        self.pad = pad
         if weights is not None:
             wf = np.power(weights, 0.75)
             wf = wf / wf.sum()
@@ -69,7 +71,11 @@ class SGNS(nn.Module):
             nwords = FT(batch_size, context_size * self.n_negs).uniform_(0, self.vocab_size - 1).long()
         ivectors = self.embedding.forward_i(iword).unsqueeze(2)
         ovectors = self.embedding.forward_o(owords)
+        non_pad = FT((owords != self.pad).float())
+        non_pad = non_pad.cuda() if self.embedding.ovectors.weight.is_cuda else non_pad
+        N = non_pad.sum()
         nvectors = self.embedding.forward_o(nwords).neg()
-        oloss = t.bmm(ovectors, ivectors).squeeze().sigmoid().log().mean(1)
-        nloss = t.bmm(nvectors, ivectors).squeeze().sigmoid().log().view(-1, context_size, self.n_negs).sum(2).mean(1)
+        #oloss = t.bmm(ovectors, ivectors).squeeze().sigmoid().log().mean(1)
+        oloss = t.sum(ls(t.bmm(ovectors, ivectors).squeeze()) * non_pad) / N
+        nloss = ls(t.bmm(nvectors, ivectors).squeeze()).view(-1, context_size, self.n_negs).sum(2).mean(1)
         return -(oloss + nloss).mean()

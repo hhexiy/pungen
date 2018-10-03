@@ -37,8 +37,9 @@ def sentence_iter(file_):
 
 def main(args):
     count = 0
-    with open(args.output, 'w') as fout:
+    with open(args.output, 'w') as fout, open(args.input, 'r') as fin:
         for s in tqdm(sentence_iter(args.input)):
+            s = line.strip().split()
             if len(s) >= args.min_len and len(s) <= args.max_len:
                 l = ['{}|{}'.format(token.text, token.pos_) for token in s]
                 fout.write(' '.join(l) + '\n')

@@ -71,7 +71,7 @@ def main(args):
             models, task.target_dictionary, beam_size=args.beam,
             stop_early=(not args.no_early_stop), normalize_scores=(not args.unnormalized),
             len_penalty=args.lenpen, unk_penalty=args.unkpen,
-            sampling=args.sampling, sampling_topk=args.sampling_topk, minlen=args.min_len,
+            sampling=args.sampling, sampling_temperature=args.sampling_temperature, sampling_topk=args.sampling_topk, minlen=args.min_len,
         )
 
     if use_cuda:
@@ -105,8 +105,11 @@ def main(args):
                 if has_target:
                     target_str = tgt_dict.string(target_tokens, args.remove_bpe, escape_unk=True)
 
+            if '<unk>' in src_str:
+                continue
+
             if not args.quiet:
-                print('S-{}\t{}'.format(sample_id, src_str))
+                print('\nS-{}\t{}'.format(sample_id, src_str))
                 if has_target:
                     print('T-{}\t{}'.format(sample_id, target_str))
 
@@ -122,20 +125,18 @@ def main(args):
                 )
 
                 if not args.quiet:
-                    print('H-{}\t{}\t{}\n'.format(sample_id, hypo_str, hypo['score']))
-                    '''
-                    print('P-{}\t{}'.format(
-                        sample_id,
-                        ' '.join(map(
-                            lambda x: '{:.4f}'.format(x),
-                            hypo['positional_scores'].tolist(),
-                        ))
-                    ))
-                    print('A-{}\t{}'.format(
-                        sample_id,
-                        ' '.join(map(lambda x: str(utils.item(x)), alignment))
-                    ))
-                    '''
+                    print('H-{}\t{}\t{}'.format(sample_id, hypo_str, hypo['score']))
+                    #print('P-{}\t{}'.format(
+                    #    sample_id,
+                    #    ' '.join(map(
+                    #        lambda x: '{:.4f}'.format(x),
+                    #        hypo['positional_scores'].tolist(),
+                    #    ))
+                    #))
+                    #print('A-{}\t{}'.format(
+                    #    sample_id,
+                    #    ' '.join(map(lambda x: str(utils.item(x)), alignment))
+                    #))
 
                 # Score only the top hypothesis
                 if has_target and i == 0:
