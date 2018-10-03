@@ -39,12 +39,12 @@ data=roc/kw-story
 src=title
 tgt=story
 preprocess-txt-roc:
-	for split in train dev test; do \
+	for split in train valid test; do \
 		python scripts/make_src_tgt_files.py \
-		--input rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.$$split \
-		--src $(src) --tgt $(tgt) \
-		--join --sep " <eot> " \
-		--output data/$(data) --filename $$split; \
+		-s data/roc/raw/$$split.txt \
+		-k data/roc/raw/$$split.key \
+		--num-key 2 \
+		-o data/$(data)/$$split; \
 	done
 
 preprocess-txt-reddit:
@@ -54,52 +54,102 @@ preprocess-txt-reddit:
 		--output data/$(data) --filename $$split; \
 	done
 
-preprocess-pt:
-	python src/preprocess.py -train_src data/$(data)/src_train.txt -train_tgt data/$(data)/tgt_train.txt -valid_src data/$(data)/src_dev.txt -valid_tgt data/$(data)/tgt_dev.txt -save_data data/$(data)/data #-dynamic_dict
+prepare-src-tgt-data:
+	#for split in train; do \
+	#	python scripts/extract_keywords.py -i data/onebillion/raw/parsed/$$split.txt -o data/$(data)/$$split --keywords NOUN VERB ADJ; \
+	#done
+		#-n 100 --debug;
+	for split in train valid test; do \
+		python scripts/make_src_tgt_files.py -i data/onebillion/raw/parsed/$$split.txt -o data/onebillion/$(data)/$$split -n 1000000; \
+	done
 
-preprocess-fairseq:
+fairseq-preprocess:
 	python src/preprocess.py --source-lang src --target-lang tgt \
-		--trainpref data/$(data)/train --validpref data/$(data)/valid --testpref data/$(data)/test \
-		--destdir data/$(data)/bin/data --thresholdtgt 10 --thresholdsrc 10
+		--destdir data/$(data)/bin/data --thresholdtgt 20 --thresholdsrc 20 \
+		--trainpref data/$(data)/train --validpref data/$(data)/valid \
+		--model editor \
+		#--testpref data/$(data)/test \
+		--srcdict data/book/kw-sent/bin/data/dict.src.txt \
+		--tgtdict data/book/kw-sent/bin/data/dict.tgt.txt \
+
+skipgram-preprocess:
+	python src/wordvec/preprocess.py --data-dir data/onebillion/wordvec \
+		--corpus data/onebillion/raw/parsed/train.txt \
+		--min-dist 5 --max-dist 10 --threshold 100 \
+		--vocab data/onebillion/wordvec/dict.txt
+
+train-skipgram:
+	python src/wordvec/train.py --weights --cuda --data data/onebillion/wordvec/train.bin --save_dir models/onebillion/wordvec --mb 3500 --epoch 10 --vocab data/onebillion/wordvec/dict.txt
+
+topk=10
+generate-skipgram:
+	python src/wordvec/generate.py --cuda --vocab data/$(data)/wordvec/dict.txt --model_path $(model) --pun-words semeval2017_task7/data/test/subtask3-heterographic-test.gold --puns data/semeval-pun/raw/hetero-pun.txt --output data/semeval-pun/kw-sent/gen-kw-1b.txt #--interact -k $(topk)
 
 fusion=prob
+insert=none
+combine=embedding
 train:
 	python src/train.py data/$(data)/bin/data -a $(model) --source-lang src --target-lang tgt \
+	--task edit --insert $(insert) --combine $(combine) \
 	--criterion cross_entropy \
-	--decoder-attention True \
-	--lr 0.05 --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 --clip-norm 5 \
-	--max-epoch 50 --max-tokens 3000 \
+	--encoder lstm --decoder-attention True \
+	--optimizer adagrad --lr 0.01 --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 --clip-norm 5 \
+	--max-epoch 50 --max-tokens 6000 \
 	--save-dir models/$(data)/$(ckpt) --no-progress-bar --log-interval 100 --no-epoch-checkpoints \
 	#--pretrained-lm models/wikitext/wiki103.pt --mixing-weights learned --fusion-type $(fusion)
 
+preprocess-test:
+	python src/preprocess.py --source-lang src --target-lang tgt \
+		--destdir data/$(data)/bin/data --thresholdtgt 20 --thresholdsrc 20 \
+		--srcdict data/book/kw-sent/bin/data/dict.src.txt \
+		--tgtdict data/book/kw-sent/bin/data/dict.tgt.txt \
+		--testpref data/$(data)/gen-kw-lm
+
+subset=test
 test:
-	python src/generate.py data/$(data)/bin/data --gen-subset valid \
-	--path models/$(data)/$(ckpt)/checkpoint_best.pt --beam 10 --unkpen 100 #--max-examples -1 #--no-score \
-	#--unkpen 1 --sampling --sampling-temperature 0.8 --sampling-topk 5 
+	python src/generate.py data/$(test_data)/bin/data --gen-subset $(subset) \
+	--path models/$(model_data)/$(ckpt)/checkpoint_best.pt --beam 5 --nbest 5 --unkpen 100 \
+	--sampling --sampling-temperature 0.3
 
 interact:
 	python src/interactive.py data/$(data)/bin/data \
-		--path models/$(data)/$(model)/checkpoint_best.pt \
-		--beam 20 --nbest 1 --unkpen 100 \
+		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
+		--beam 20 --nbest 20 --unkpen 100 --normal \
+		#--sampling --sampling-temperature 0.2 \
+		#--skipgram-model models/wordvec/sgns-e15.pt --skipgram-data data/wordvec \
 		#--lm models/wikitext/wiki103.pt
 
-gluon-preprocess:
-	python src/preprocess.py --train data/$(data)/train.txt --outdir data/$(data)
+lm-score:
+	python src/lm_score.py data/$(data)/bin/data \
+		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
+		--beam 10 --nbest 10 --unkpen 100 --normal \
 
-gpu=0
-arch=lstm
-model=lm
-src=keywords
-tgt=story
-gluon-train:
-	export MXNET_FORCE_ADDTAKEGRAD=1; export MXNET_GPU_MEM_POOL_TYPE=Round; \
-	python src/train.py --train data/$(data)/train.txt --valid data/$(data)/dev.txt \
-	--src $(src) --tgt $(tgt) --vocab data/$(data)/$(model)-$(src)-$(tgt)-vocab.json \
-	--batch-size 128 --num-buckets 10 \
-	--optimizer sgd --lr 0.1 --lr-update-factor 0.5 --clip-norm 5 --min-lr 1e-5 --max-epoch 100 \
-	--model-type $(model) -a $(arch) \
-	--log-interval 100 --save-dir checkpoints/$(data)/$(ckpt) \
-	--gpu $(gpu) --seed 2 
+analyze:
+	python scripts/aggregate_results.py --model-outputs logs/$(data)/lstm.test.log logs/$(data)/lstm-wiki-input.test.log --model-names lstm lstm-wiki --output logs/$(data)/all.test.agg
 
-gluon-gen:
-	python src/generate.py --test data/$(data)/train.txt --batch-size 10 --checkpoint checkpoints/$(data)/$(ckpt)/best --output out --prefix-len 30 --alpha 0 -k 5 --max-len 100 --beam 100 --gpu 0 --sampling --temperature 0.5
+human-eval:
+	python scripts/human_eval.py --model-outputs logs/$(data)/lstm-wiki-input.test.log --num 1
+
+retrieve:
+	python src/retriever.py --doc-file data/$(data)/raw/sent.txt --lm-path models/wikitext --path models/retriever-1b.pkl --skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt --keywords data/manual/pun.txt
+
+system=rule
+generate-pun:
+	#python src/generate_pun.py --doc-file data/$(data)/raw/sent.txt --lm-path models/wikitext --retriever-path models/retriever-1b.pkl --skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt --keywords data/manual/pun.txt
+	python generate_pun.py data/$(data)/bin/data \
+		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
+		--beam 20 --nbest 1 --unkpen 100 \
+		--system $(system) \
+		--doc-file data/onebillion/raw/sent.tokenized.ner.txt data/onebillion/raw/sent.tokenized.txt \
+		--retriever-path models/retriever-1b.pkl \
+		--lm-path models/wikitext --word-counts-path models/wikitext/dict.txt \
+		--skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt \
+		--keywords data/manual/pun.txt
+
+neural-generate:
+	python src/generator.py data/$(data)/bin/data \
+		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
+		--beam 50 --nbest 3 --unkpen 100 --insert $(insert)
+
+retriever:
+	python -m src.retriever --interactive --doc-file data/onebillion/raw/sent.tokenized.ner.txt data/onebillion/raw/sent.tokenized.txt --path models/onebillion/retriever.pkl --overwrite

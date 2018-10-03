@@ -11,6 +11,7 @@ import argparse
 from itertools import zip_longest
 import os
 import shutil
+from collections import Counter
 
 from fairseq.data import indexed_dataset, dictionary
 from fairseq.tokenizer import Tokenizer, tokenize_line
@@ -40,6 +41,7 @@ def get_parser():
     parser.add_argument('--only-source', action='store_true', help='Only process the source language')
     parser.add_argument('--padding-factor', metavar='N', default=8, type=int,
                         help='Pad dictionary size to be multiple of N')
+    parser.add_argument('--model', default='seq2seq', choices=['seq2seq', 'editor'])
     return parser
 
 
@@ -110,6 +112,45 @@ def main(args):
             )
         tgt_dict.save(dict_path(args.target_lang))
 
+    def editor_src_binarizer(filename, dict, consumer, tokenize=tokenize_line,
+                 append_eos=True, reverse_order=False):
+        nseq, ntok = 0, 0
+        replaced = Counter()
+
+        def replaced_consumer(word, idx):
+            if idx == dict.unk_index and word != dict.unk_word:
+                replaced.update([word])
+
+        with open(filename, 'r') as f:
+            for i, line in enumerate(f):
+                # self, related, template
+                # only add EOS to template
+                append_eos = True if (i + 1) % 3 == 0 else False
+                ids = Tokenizer.tokenize(
+                    line=line,
+                    dict=dict,
+                    tokenize=tokenize,
+                    add_if_not_exist=False,
+                    consumer=replaced_consumer,
+                    append_eos=append_eos,
+                    reverse_order=reverse_order,
+                )
+                nseq += 1
+
+                consumer(ids)
+                ntok += len(ids)
+        return {'nseq': nseq, 'nunk': sum(replaced.values()), 'ntok': ntok, 'replaced': len(replaced)}
+
+
+    def binarize(input_file, dict, consumer, lang):
+        if args.model == 'seq2seq':
+            return Tokenizer.binarize(input_file, dict, consumer)
+        elif args.model == 'editor':
+            if lang == args.target_lang:
+                return Tokenizer.binarize(input_file, dict, consumer)
+            return editor_src_binarizer(input_file, dict, consumer)
+        return None
+
     def make_binary_dataset(input_prefix, output_prefix, lang):
         dict = dictionary.Dictionary.load(dict_path(lang))
         print('| [{}] Dictionary: {} types'.format(lang, len(dict) - 1))
@@ -120,7 +161,7 @@ def main(args):
             ds.add_item(tensor)
 
         input_file = '{}{}'.format(input_prefix, ('.' + lang) if lang is not None else '')
-        res = Tokenizer.binarize(input_file, dict, consumer)
+        res = binarize(input_file, dict, consumer, lang)
         print('| [{}] {}: {} sents, {} tokens, {:.3}% replaced by {}'.format(
             lang, input_file, res['nseq'], res['ntok'],
             100 * res['nunk'] / res['ntok'], dict.unk_word))
@@ -145,9 +186,8 @@ def main(args):
                 outprefix = 'valid{}'.format(k) if k > 0 else 'valid'
                 make_dataset(validpref, outprefix, lang)
         if args.testpref:
-            for k, testpref in enumerate(args.testpref.split(',')):
-                outprefix = 'test{}'.format(k) if k > 0 else 'test'
-                make_dataset(testpref, outprefix, lang)
+            outprefix = args.testpref.split('/')[-1]
+            make_dataset(args.testpref, outprefix, lang)
 
     make_all(args.source_lang)
     if target:

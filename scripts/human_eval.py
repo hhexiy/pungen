@@ -9,6 +9,7 @@ def parse_args():
     parser.add_argument('--model-outputs')
     parser.add_argument('--num', default=10, type=int)
     parser.add_argument('--db', default='eval.json')
+    parser.add_argument('--readable-result', default='eval.txt')
     args = parser.parse_args()
     return args
 
@@ -37,6 +38,15 @@ def main(args):
             results = json.load(fin)
     else:
         results = parse_results(args.model_outputs)
+
+    category_dict = {
+        1: 'wrong sentiment',
+        2: 'wrong event sequences / contradiction',
+        3: 'repetition',
+        4: 'irrelevence',
+        5: 'ilogical sentence',
+    }
+
     ids = list(results.keys())
     eval_sample_ids = random.choices(ids, k=args.num)
     for id_ in eval_sample_ids:
@@ -57,9 +67,25 @@ def main(args):
                 if not s in sample['problems']:
                     sample['problems'].append(s)
 
+    num_eval = 0
+    for id_, result in results.items():
+        if 'problems' in result:
+            num_eval += 1
+
+    with open(args.readable_result, 'w') as fout:
+        for id_, result in results.items():
+            if 'problems' in result:
+                fout.write(result['src']+'\n')
+                fout.write(result['hypo']+'\n')
+                for p in result['problems']:
+                    fout.write('{} {}\n'.format(p, category_dict[p]))
+                fout.write('\n')
+
+
     all_problems = Counter()
     for id_, result in results.items():
         all_problems.update(result.get('problems', []))
+    print(num_eval)
     print(all_problems)
 
     with open(args.db, 'w') as fout:
