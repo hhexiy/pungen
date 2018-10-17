@@ -8,12 +8,13 @@ from fairseq import options
 from pungen.retriever import Retriever
 from pungen.generator import SkipGram, RulebasedGenerator, NeuralGenerator
 from pungen.scorer import LMScorer, PunScorer, UnigramModel
-from pungen.options import add_scorer_args
+from pungen.options import add_scorer_args, add_type_recognizer_args
 
 
 def parse_args():
     parser = options.get_generation_parser(interactive=True)
     add_scorer_args(parser)
+    add_type_recognizer_args(parser)
     parser.add_argument('--insert')
     parser.add_argument('--skipgram-path', nargs=2, help='pretrained skipgram model [vocab, model]')
     parser.add_argument('--doc-file', nargs=2, help='tokenized training corpus to retrieve from')
@@ -40,8 +41,9 @@ def main(args):
     #lm = None
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     scorer = PunScorer(lm, unigram_model)
+    type_recognizer = TypeRecognizer(args.type_dict_path)
     if args.system == 'rule':
-        generator = RulebasedGenerator(retriever, skipgram, scorer)
+        generator = RulebasedGenerator(retriever, skipgram, type_recognizer, scorer)
     else:
         generator = NeuralGenerator(retriever, skipgram, scorer, args)
 
@@ -70,6 +72,9 @@ def main(args):
                 print(r['score'], ' '.join(r['output']))
             print()
     #fout.close()
+
+    # Cache queried types
+    type_recognizer.save()
 
 
 

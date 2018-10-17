@@ -31,11 +31,12 @@ for ent in ('<org>', '<person>', '<date>', '<time>', '<gpe>', '<norp>',
 
 
 class RulebasedGenerator(object):
-    def __init__(self, retriever, neighbor_predictor, scorer, beginning_portion=0.3):
+    def __init__(self, retriever, neighbor_predictor, typer_recognizer, scorer, beginning_portion=0.3):
         self.retriever = retriever
         self.neighbor_predictor = neighbor_predictor
         self.scorer = scorer
         self.beginning_portion = beginning_portion
+        self.typer_recognizer = typer_recognizer
 
     # TODO: update neural version
     def delete_words(self, sents, pun_word_ids):
@@ -76,19 +77,33 @@ class RulebasedGenerator(object):
         #for s in sim_sents:
         #    cands.update(s)
         cands = None
-        words = self.neighbor_predictor.predict_neighbors(pun_word, k=k, sim_words=[del_word], cands=cands)
-        new_words = []
+        words = self.neighbor_predictor.predict_neighbors(pun_word, k=k, sim_words=None, cands=cands)
+
         if not words:
-            return new_words
+            return []
+
         if del_word is not None:
             del_word = nlp(del_word)[0].lemma_
-            #del_word = stemmer.stem(del_word)
-        for w in words:
-            w_ = nlp(w)[0]
-            #w_ = stemmer.stem(w)
+
+        # POS constraints
+        new_words = []
+        parsed_words = nlp.pipe(words)
+        for w in parsed_words:
+            w_ = w[0]
             if not w_.lemma_ in (pun_word, del_word) and w_.pos_ in tags:
-                new_words.append(w)
-        return new_words
+                new_words.append(w_.lemma_)
+        words = new_words
+
+        # type constraints
+        new_words = []
+        types = self.type_recognizer.get_type(del_word)
+        for w in words
+            for type_ in types:
+                if self.type_recognizer.is_type(w, type_):
+                    new_words.append(w)
+        words = new_words
+
+        return words
 
     def rewrite(self, pun_sent, delete_span_ids, insert_word, pun_word_id):
         """
