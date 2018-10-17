@@ -1,5 +1,5 @@
 import argparse
-import os
+import os, sys
 import numpy as np
 import time
 import pickle
@@ -111,6 +111,9 @@ if __name__ == '__main__':
     parser.add_argument('--interactive', action='store_true')
     parser.add_argument('--path', default='models/retriever.pkl', help='retriever model path')
     parser.add_argument('--overwrite', action='store_true')
+    parser.add_argument('--keywords', help='file containing keywords')
+    parser.add_argument('--alterwords', help='file containing alternative words')
+    parser.add_argument('--outfile', help='output file for the retrieved sentences')
     args = parser.parse_args()
 
     retriever = Retriever(args.doc_file, args.path, args.overwrite)
@@ -124,3 +127,23 @@ if __name__ == '__main__':
                 print(' '.join(ori_sent))
             if not alter_sents:
                 print('No candidates found')
+    else:
+        with open(args.keywords, 'r') as fin, open(args.alterwords, 'r') as afin, open(args.outfile, 'w') as outf:
+            for key, alter in zip(fin, afin):
+                key = key.strip()
+                alter = alter.strip()
+                ids = retriever.query(key, 10)
+                contents = [retriever.ori_docs[id_] for id_ in ids]
+                contents.sort(key = lambda s: len(s), reverse=True)
+#                print(line.strip())
+                for ct in contents:
+                    ct_list = ct.split()
+                    try:
+                        idx = ct_list.index(key)
+                    except:
+                        sys.stderr.write('cannot find the word %s!\n' % key)
+                        continue
+                    ct_list[idx] = alter
+                    outf.write(ct.lower() + '\n')
+                    print(' '.join(ct_list).lower())
+                    break
