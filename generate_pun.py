@@ -1,4 +1,3 @@
-import torch
 import pickle
 import argparse
 from collections import defaultdict
@@ -8,6 +7,7 @@ from fairseq import options
 from pungen.retriever import Retriever
 from pungen.generator import SkipGram, RulebasedGenerator, NeuralGenerator
 from pungen.scorer import LMScorer, PunScorer, UnigramModel
+from pungen.type import TypeRecognizer
 from pungen.options import add_scorer_args, add_type_recognizer_args
 
 
@@ -33,8 +33,6 @@ def iter_keywords(file_):
             yield alter_word, pun_word
 
 def main(args):
-    use_cuda = torch.cuda.is_available() and not args.cpu
-
     retriever = Retriever(args.doc_file, args.retriever_path)
     skipgram = SkipGram.load_model(args.skipgram_path[0], args.skipgram_path[1], args.cpu)
     lm = LMScorer.load_model(args.lm_path)
@@ -45,12 +43,12 @@ def main(args):
     if args.system == 'rule':
         generator = RulebasedGenerator(retriever, skipgram, type_recognizer, scorer)
     else:
-        generator = NeuralGenerator(retriever, skipgram, scorer, args)
+        generator = NeuralGenerator(retriever, skipgram, type_recognizer, scorer, args)
 
     #fout = open(args.output, 'w')
     for alter_word, pun_word in iter_keywords(args.keywords):
         print('INPUT:', alter_word, pun_word)
-        results = generator.generate(alter_word, pun_word, k=50, ncands=500)
+        results = generator.generate(alter_word, pun_word, k=100, ncands=500)
         if not results:
             continue
         results = [r for r in results if r.get('score') is not None]
