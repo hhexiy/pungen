@@ -1,43 +1,8 @@
-keywords:
-	python pytorch_src/generate.py \
-		--train-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkey.train --valid-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkey.dev --test-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkey.test \
-		--checkpoint models/ROCstory_title_keywords_e500_h1000_edr0.4_hdr0.1.pt \
-		--task cond_generate \
-		--conditional-data rocstory_plan_write/ROCStories_all_merge_tokenize.title.test \
-		--cuda --temperature 0.15 --sents 100 --dedup \
-		--outf generation_results/cond_generated_keywords_test_e500_h1000_edr0.4_hdr0.1_t0.15.txt
-
-story:
-	python pytorch_src/generate.py \
-		--train-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.train --valid-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.dev --test-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.test \
-		--checkpoint models/ROCstory_titlesepkey_story_e1000_h1500_edr0.2_hdr0.1.pt \
-		--task cond_generate \
-		--conditional-data generation_results/cond_generated_keywords_test_e500_h1000_edr0.4_hdr0.1_t0.15.txt \
-		--cuda --temperature 0.3 \
-		--outf generation_results/cond_generated_keywords_test_e500_h1000_edr0.4_hdr0.1_t0.15.txt_lm_e1000_h1500_edr0.2_hdr0.1_t0.3.txt
-
-models/story_dict.pkl:
-	python pytorch_src/make_vocab.py \
-		--train-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.train --valid-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.dev --test-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.test \
-		--output models/story_dict.pkl
-
-models/keyword_dict.pkl:
-	python pytorch_src/make_vocab.py \
-		--train-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkey.train --valid-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkey.dev --test-data rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkey.test \
-		--output models/keyword_dict.pkl
-
-interact2:
-	python pytorch_src/interactive_generate.py \
-		--keyword-model models/ROCstory_title_keywords_e500_h1000_edr0.4_hdr0.1.pt \
-		--story-model models/ROCstory_titlesepkey_story_e1000_h1500_edr0.2_hdr0.1.pt \
-		--keyword-vocab models/keyword_dict.pkl \
-		--story-vocab models/story_dict.pkl \
-		--titles rocstory_plan_write/ROCStories_all_merge_tokenize.title.test \
-		--cuda --temperature 0.3
-
 data=roc/kw-story
 src=title
 tgt=story
+glove=/u/scr/nlp/data/glove_vecs/glove.840B.300d.txt
+
 preprocess-txt-roc:
 	for split in train valid test; do \
 		python scripts/make_src_tgt_files.py \
@@ -64,10 +29,10 @@ prepare-src-tgt-data:
 	done
 
 fairseq-preprocess:
-	python src/preprocess.py --source-lang src --target-lang tgt \
-		--destdir data/$(data)/bin/data --thresholdtgt 20 --thresholdsrc 20 \
+	python preprocess.py --source-lang src --target-lang tgt \
+		--destdir data/$(data)/bin/data --thresholdtgt 0 --thresholdsrc 0 \
 		--trainpref data/$(data)/train --validpref data/$(data)/valid \
-		--model editor \
+		#--model editor \
 		#--testpref data/$(data)/test \
 		--srcdict data/book/kw-sent/bin/data/dict.src.txt \
 		--tgtdict data/book/kw-sent/bin/data/dict.tgt.txt \
@@ -134,22 +99,56 @@ retrieve:
 	python src/retriever.py --doc-file data/$(data)/raw/sent.txt --lm-path models/wikitext --path models/retriever-1b.pkl --skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt --keywords data/manual/pun.txt
 
 system=rule
+gdata=bookcorpus
 generate-pun:
 	#python src/generate_pun.py --doc-file data/$(data)/raw/sent.txt --lm-path models/wikitext --retriever-path models/retriever-1b.pkl --skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt --keywords data/manual/pun.txt
 	python generate_pun.py data/$(data)/bin/data \
 		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
 		--beam 20 --nbest 1 --unkpen 100 \
 		--system $(system) \
-		--doc-file data/onebillion/raw/sent.tokenized.ner.txt data/onebillion/raw/sent.tokenized.txt \
-		--retriever-path models/retriever-1b.pkl \
+		--doc-file data/$(gdata)/raw/sent.tokenized.txt \
+		--retriever-model models/$(gdata)/retriever.pkl \
 		--lm-path models/wikitext --word-counts-path models/wikitext/dict.txt \
-		--skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt \
-		--keywords data/manual/pun.txt
+		--skipgram-model data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt \
+		--num-topic-word 1000 \
+		--pun-words data/semeval/hetero/dev.json \
+		--output results/$(system).json 
+		#--keywords data/manual/pun.txt
 
 neural-generate:
 	python src/generator.py data/$(data)/bin/data \
 		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
 		--beam 50 --nbest 3 --unkpen 100 --insert $(insert)
 
-retriever:
-	python -m src.retriever --interactive --doc-file data/onebillion/raw/sent.tokenized.ner.txt data/onebillion/raw/sent.tokenized.txt --path models/onebillion/retriever.pkl --overwrite
+semeval_dir=semeval2017_task7/data/test/subtask3-
+type=hetero
+parse-semeval:
+	PYTHONPATH=. python scripts/parse_semeval.py --xml $(semeval_dir)$(type)graphic-test.xml --gold $(semeval_dir)$(type)graphic-test.gold --output data/semeval/$(type)
+
+# Process generic corpus
+split-file:
+	split -l 1000000 data/bookcorpus/raw/sent.tokenized.txt data/bookcorpus/raw/parts/x
+## Parse in parallel
+# bash scripts/submit_preprocess.sh
+## Parsed to tokenized sentences
+# scripts/parsed_to_tokenized.py
+
+build-retriever:
+	#python -m pungen.retriever --doc-file data/onebillion/raw/sent.tokenized.ner.txt data/onebillion/raw/sent.tokenized.txt --path models/onebillion/retriever.pkl --overwrite
+	python -m pungen.retriever --doc-file data/bookcorpus/raw/sent.tokenized.txt --path models/bookcorpus/retriever.pkl --overwrite
+
+human-corr:
+	python eval_scoring_func_corr.py --human-eval data/eval/sentences_with_scores.txt --lm-path models/wikitext --word-counts-path models/wikitext/dict.txt --types pun depun
+
+prepare-pun-data:
+	PYTHONPATH=. python scripts/make_pun_src_tgt_files.py --pun-data data/semeval/$(type)/dev.json --output data/pun/ --dev-frac 0.1
+
+train-pun:
+	python train.py data/$(data)/bin/data -a $(model) --source-lang src --target-lang tgt \
+	--criterion cross_entropy \
+	--encoder lstm --decoder-attention True \
+	--encoder-embed-path $(glove) --encoder-embed-dim 300 --decoder-embed-path $(glove) --decoder-embed-dim 300 \
+	--optimizer adagrad --lr 0.01 --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 --clip-norm 5 \
+	--max-epoch 50 --max-tokens 6000 \
+	--save-dir models/$(data)/$(ckpt) --no-progress-bar --log-interval 1 --no-epoch-checkpoints \
+	--pretrained-lm models/wikitext/wiki103.pt --mixing-weights learned --fusion-type $(fusion)

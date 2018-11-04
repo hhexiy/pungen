@@ -3,26 +3,20 @@ import os, sys
 import numpy as np
 import time
 import pickle
-import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
-
-from fairseq import data, options, progress_bar, tasks, utils, tokenizer
 
 from .utils import sentence_iterator, Word
 
-ner_dict = {
-        '<org>': 'Google',
-        '<person>': 'John',
-        '<date>': 'today',
-        '<gpe>': 'US',
-        '<cardinal>': 'one',
-        }
 
 class Retriever(object):
     def __init__(self, doc_files, path=None, overwrite=False):
         print('reading docs')
         self.docs = [line.strip() for line in open(doc_files[0], 'r')]
-        self.ori_docs = [line.strip() for line in open(doc_files[1], 'r')]
+        # TODO: in future we will not do NER abstraction, so no need to have ori_docs
+        if len(doc_files) > 1:
+            self.ori_docs = [line.strip() for line in open(doc_files[1], 'r')]
+        else:
+            self.ori_docs = self.docs
 
         if overwrite or (path is None or not os.path.exists(path)):
             print('building retriever index')
@@ -53,21 +47,6 @@ class Retriever(object):
         ids = np.argsort(scores)[-k:][::-1]
         return ids
 
-    def keywords_at_the_end(self, words, sent):
-        pos = []
-        sent = sent.split()
-        if len(sent) < 10:
-            return False
-        for i, w in enumerate(sent):
-            if w in words:
-                pos.append(i)
-        if len(pos) != len(words):
-            return False
-        for p in pos:
-            if p < min(int(len(sent) * 0.7), len(sent) - 1):
-                return False
-        return True
-
     def check_pos(self, sent, word, pos_threshold):
         pos = [i for i, w in enumerate(sent) if w == word]
         if len(pos) != 1:
@@ -82,8 +61,9 @@ class Retriever(object):
             return False
         return True
 
-    def retrieve_pun_template(self, pun_word, alter_word, len_threshold=10, pos_threshold=0.7, num_cands=500, num_templates=None):
+    def retrieve_pun_template(self, pun_word, alter_word, len_threshold=10, pos_threshold=0.5, num_cands=500, num_templates=None):
         ids = self.query(alter_word, num_cands)
+        print('retriever returned {} candidates.'.format(len(ids)))
         sents = [self.docs[id_].split() for id_ in ids]
         ori_sents = [self.ori_docs[id_].split() for id_ in ids]
         alter_sents = []
@@ -102,12 +82,13 @@ class Retriever(object):
                 pun_sents.append([x if x != alter_word else pun_word for x in sent])
                 id_ = [i for i, w in enumerate(sent) if w == alter_word][0]
                 pun_word_ids.append(id_)
+        print('{} satisfies pun constraints.'.format(count))
         return alter_sents, pun_sents, pun_word_ids, alter_ori_sents
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--doc-file', nargs=2, help='tokenized training corpus')
+    parser.add_argument('--doc-file', nargs='+', help='training corpus')
     parser.add_argument('--interactive', action='store_true')
     parser.add_argument('--path', default='models/retriever.pkl', help='retriever model path')
     parser.add_argument('--overwrite', action='store_true')
@@ -127,7 +108,7 @@ if __name__ == '__main__':
                 print(' '.join(ori_sent))
             if not alter_sents:
                 print('No candidates found')
-    else:
+    elif args.outfile:
         with open(args.keywords, 'r') as fin, open(args.alterwords, 'r') as afin, open(args.outfile, 'w') as outf:
             for key, alter in zip(fin, afin):
                 key = key.strip()

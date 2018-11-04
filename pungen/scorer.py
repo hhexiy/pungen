@@ -93,9 +93,7 @@ class PunScorer(object):
         return score
 
     # TODO: batch
-    def score(self, alter_sent, alter_word_id, pun_sent, pun_word_id, local_window_size=3):
-        # TODO: fix this
-        alter_word = alter_sent[alter_word_id]
+    def score(self, pun_sent, pun_word_id, alter_word, local_window_size=3):
         alter_sent = list(pun_sent)
         alter_sent[pun_word_id] = alter_word
         alter_word_id = pun_word_id

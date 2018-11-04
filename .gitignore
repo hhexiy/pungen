@@ -3,3 +3,4 @@ logs
 models
 results
 __pycache__
+*.pyc

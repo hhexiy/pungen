@@ -2,6 +2,9 @@ import argparse
 import os
 import pickle
 from nltk.corpus import wordnet as wn
+import logging
+logger = logging.getLogger('pungen')
+logger.setLevel(logging.INFO)
 
 import torch
 from torch import LongTensor as LT
@@ -47,8 +50,8 @@ class SkipGram(object):
         iwords = [vocab.index(word) for word in words]
         for iword, w in zip(iwords, words):
             if iword == vocab.unk():
-                print('unknown word: {}'.format(w))
-                return None
+                logger.info('unknown input word: {}'.format(w))
+                return []
 
         ovectors = self.model.embedding.forward_o(owords)
         scores = 0
