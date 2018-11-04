@@ -1,39 +1,63 @@
+import json
+import os
 from argparse import ArgumentParser
 from collections import defaultdict
 from unidecode import unidecode
 import xml.etree.ElementTree
-import spacy
-from spacy.lang.en.stop_words import STOP_WORDS
 
-nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
-is_stop = lambda x: x in STOP_WORDS
+from pungen.utils import ensure_exist
+
+
+def parse_gold_file(path):
+    word_pairs = {}
+    with open(path) as fin:
+        for line in fin:
+            ss = line.strip().split()
+            sent_id = '_'.join(ss[0].split('_')[:2])
+            word_id = int(ss[0].split('_')[-1])
+            pun_word = ss[1].split('%')[0]
+            alter_word = ss[2].split('%')[0]
+            word_pairs[sent_id] = {'pun': pun_word, 'alter': alter_word, 'id': word_id}
+    return word_pairs
+
+def parse_xml_file(path):
+    e = xml.etree.ElementTree.parse(path).getroot()
+    sents = defaultdict(list)
+    for w in e.iter('word'):
+        token = unidecode(w.text).lower()
+        sent_id = '_'.join(w.attrib['id'].split('_')[:2])
+        sents[sent_id].append(token)
+    return sents
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--xml')
-    parser.add_argument('--output')
+    parser.add_argument('--xml', help='.xml input from semeval containing pun sentences')
+    parser.add_argument('--gold', help='.gold input from semeval containing paired words')
+    parser.add_argument('--output-dir', help='path to output file')
+    parser.add_argument('--split', default=0.2, help='percentage of data for development')
     args = parser.parse_args()
 
-    e = xml.etree.ElementTree.parse(args.xml).getroot()
-    sents = defaultdict(list)
-    pun_words = defaultdict(list)
-    for w in e.iter('word'):
-        token = unidecode(w.text).lower()
-        pun_word = w.attrib['senses'] == '2'
-        sent_id = int(w.attrib['id'].split('_')[1])
-        sents[sent_id].append(token)
-        if pun_word:
-            pun_words[sent_id].append(token)
+    word_pairs = parse_gold_file(args.gold)
+    sents = parse_xml_file(args.xml)
+    ids = sorted(word_pairs.keys(), key=lambda x: int(x.split('_')[1]))
+    puns = []
+    for id_ in ids:
+        pun = {
+                'id': id_,
+                'tokens': sents[id_],
+                'pun_word': word_pairs[id_]['pun'],
+                'alter_word': word_pairs[id_]['alter'],
+                'pun_word_id': word_pairs[id_]['id'],
+                }
+        puns.append(pun)
 
-    with open(args.output, 'w') as fout:
-        for id_ in sents:
-            text = ' '.join(sents[id_])
-            #doc = nlp(text)
-            #content_words = set([x.text.lower() for x in doc if x.pos_ in ('NOUN', 'VERB') and not is_stop(x.text.lower()) and len(x.text) > 2])
-            #pun_word = pun_words[id_]
-            #for w in pun_word:
-            #    if not w in content_words:
-            #        content_words.add(w)
-            #fout.write(' '.join(pun_word) + '\t' + ' '.join(list(content_words)) + '\t' + text + '\n')
-            fout.write(text + '\n')
+    ensure_exist(args.output_dir, is_dir=True)
+    ndev = int(len(puns) * args.split)
 
+    path = os.path.join(args.output_dir, 'dev.json')
+    print('Write {} puns for dev to {}.'.format(ndev, path))
+    json.dump(puns[:ndev], open(path, 'w'))
+
+    path = os.path.join(args.output_dir, 'test.json')
+    print('Write {} puns for dev to {}.'.format(len(puns) - ndev, path))
+    json.dump(puns[ndev:], open(path, 'w'))

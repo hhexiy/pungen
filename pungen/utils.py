@@ -1,4 +1,4 @@
-# parsed words
+import os
 from enum import IntEnum
 Word = IntEnum('Word', [(x, i) for i, x in enumerate('SURFACE TOKEN LEMMA TAG'.split())])
 
@@ -15,3 +15,10 @@ def sentence_iterator(file_, n=-1):
                     words.append(tags)
             yield words
 
+def ensure_exist(path, is_dir=False):
+    if not is_dir:
+        dir_ = os.path.dirname(path)
+    else:
+        dir_ = path
+    if not os.path.exists(dir_):
+        os.makedirs(dir_)

@@ -31,43 +31,31 @@ for ent in ('<org>', '<person>', '<date>', '<time>', '<gpe>', '<norp>',
 
 
 class RulebasedGenerator(object):
-    def __init__(self, retriever, neighbor_predictor, typer_recognizer, scorer, beginning_portion=0.3):
+    def __init__(self, retriever, neighbor_predictor, type_recognizer, scorer, beginning_portion=0.3):
         self.retriever = retriever
         self.neighbor_predictor = neighbor_predictor
         self.scorer = scorer
         self.beginning_portion = beginning_portion
-        self.typer_recognizer = typer_recognizer
+        self.type_recognizer = type_recognizer
 
-    # TODO: update neural version
+    def _delete_candidates(self, parsed_sent, pun_word_id):
+        n = max(0, int(self.beginning_portion * len(parsed_sent)))
+        noun_ids = [i for i in range(min(n+1, pun_word_id))
+                if parsed_sent[i].pos_ in ('NOUN', 'PROPN', 'PRON') and
+                    (parsed_sent[i].dep_.startswith('nsubj') or
+                    parsed_sent[i].dep_ == 'ROOT')]
+        return noun_ids
+
     def delete_words(self, sents, pun_word_ids):
         parsed_sents = nlp.pipe([' '.join(s) for s in sents])
         for parsed_sent, pun_word_id in zip(parsed_sents, pun_word_ids):
-            n = max(0, int(self.beginning_portion * len(parsed_sent)))
-            noun_ids = [i for i in range(min(n+1, pun_word_id))
-                    if parsed_sent[i].pos_ in ('NOUN', 'PROPN', 'PRON') and
-                        (parsed_sent[i].dep_.startswith('nsubj') or
-                        parsed_sent[i].dep_ == 'ROOT')]
-            if not noun_ids:
+            ids = self._delete_candidates(parsed_sent, pun_word_id)
+            if not ids:
                 yield None, None
             else:
-                del_word = noun_ids[0]
+                del_word = ids[0]
                 del_span = [del_word]
                 yield del_span, del_word
-
-
-    def _delete_words(self, alter_sent, pun_word_id):
-        N = len(alter_sent)
-        # TODO: make this an argument (saved in model config)
-        n = max(0, int(0.3 * N))
-        parsed_alter_sent = nlp(' '.join(alter_sent))
-        noun_ids = [i for i in range(min(n+1, pun_word_id))
-                if parsed_alter_sent[i].pos_ in ('NOUN', 'PROPN', 'PRON') and
-                True]
-                #(parsed_alter_sent[i].dep_.startswith('nsubj') or
-                #    parsed_alter_sent[i].dep_ == 'ROOT')]
-        if not noun_ids:
-            return None, None
-        return [noun_ids[0]], noun_ids[0]
 
     def get_topic_words(self, pun_word, del_word=None, context=None, tags=('NOUN', 'PROPN'), k=20):
         # Get sentences in similar context
@@ -77,13 +65,16 @@ class RulebasedGenerator(object):
         #for s in sim_sents:
         #    cands.update(s)
         cands = None
+        # TODO: don't repeat
         words = self.neighbor_predictor.predict_neighbors(pun_word, k=k, sim_words=None, cands=cands)
 
         if not words:
             return []
 
         if del_word is not None:
-            del_word = nlp(del_word)[0].lemma_
+            lemma = nlp(del_word)[0].lemma_
+            if lemma != '-PRON-':
+                del_word = lemma
 
         # POS constraints
         new_words = []
@@ -97,10 +88,10 @@ class RulebasedGenerator(object):
         # type constraints
         new_words = []
         types = self.type_recognizer.get_type(del_word)
-        for w in words
-            for type_ in types:
-                if self.type_recognizer.is_type(w, type_):
-                    new_words.append(w)
+        print(del_word, types)
+        for w in words:
+            if self.type_recognizer.is_types(w, types):
+                new_words.append(w)
         words = new_words
 
         return words
@@ -150,8 +141,8 @@ class RulebasedGenerator(object):
         return results
 
 class NeuralGenerator(RulebasedGenerator):
-    def __init__(self, retriever, neighbor_predictor, scorer, args):
-        super().__init__(retriever, neighbor_predictor, scorer)
+    def __init__(self, retriever, neighbor_predictor, type_recognizer, scorer, args):
+        super().__init__(retriever, neighbor_predictor, type_recognizer, scorer)
 
         task, model, model_args = self.load_model(args)
 
@@ -227,7 +218,7 @@ class NeuralGenerator(RulebasedGenerator):
             results.append(hypo_str.split())
         return results
 
-    def delete_words(self, alter_sent, pun_word_id):
+    def _delete_words(self, alter_sent, pun_word_id):
         parsed_alter_sent = nlp(' '.join(alter_sent))
         noun_ids = [i for i in range(pun_word_id)
                 if parsed_alter_sent[i].pos_ in ('NOUN', 'PROPN', 'PRON') and
@@ -244,6 +235,18 @@ class NeuralGenerator(RulebasedGenerator):
         if id_ + 1 < len(alter_sent): #and not parsed_alter_sent[id_ + 1].pos_ in ('NOUN', 'VERB') :
             deleted.append(id_ + 1)
         return deleted, id_
+
+    def delete_words(self, sents, pun_word_ids):
+        for sent, (del_span, del_word) in zip(sents, super().delete_words(sents, pun_word_ids)):
+            if del_span is None:
+                yield None, None
+            else:
+                id_ = del_word
+                if id_ - 1 >= 0: #and not parsed_alter_sent[id_ - 1].pos_ in ('NOUN', 'VERB'):
+                    del_span.insert(0, id_ - 1)
+                if id_ + 1 < len(sent): #and not parsed_alter_sent[id_ + 1].pos_ in ('NOUN', 'VERB') :
+                    del_span.append(id_ + 1)
+                yield del_span, del_word
 
     def get_topic_words(self, pun_word, del_word=None, tags=('NOUN', 'PROPN'), k=20, context=None):
         if self.model_args.insert == 'related':
