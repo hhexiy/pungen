@@ -19,48 +19,30 @@ preprocess-txt-reddit:
 		--output data/$(data) --filename $$split; \
 	done
 
-prepare-src-tgt-data:
-	#for split in train; do \
-	#	python scripts/extract_keywords.py -i data/onebillion/raw/parsed/$$split.txt -o data/$(data)/$$split --keywords NOUN VERB ADJ; \
-	#done
-		#-n 100 --debug;
-	for split in train valid test; do \
-		python scripts/make_src_tgt_files.py -i data/onebillion/raw/parsed/$$split.txt -o data/onebillion/$(data)/$$split -n 1000000; \
-	done
-
-fairseq-preprocess:
-	python preprocess.py --source-lang src --target-lang tgt \
-		--destdir data/$(data)/bin/data --thresholdtgt 0 --thresholdsrc 0 \
-		--trainpref data/$(data)/train --validpref data/$(data)/valid \
-		#--model editor \
-		#--testpref data/$(data)/test \
-		--srcdict data/book/kw-sent/bin/data/dict.src.txt \
-		--tgtdict data/book/kw-sent/bin/data/dict.tgt.txt \
-
 skipgram-preprocess:
-	python src/wordvec/preprocess.py --data-dir data/onebillion/wordvec \
-		--corpus data/onebillion/raw/parsed/train.txt \
-		--min-dist 5 --max-dist 10 --threshold 100 \
-		--vocab data/onebillion/wordvec/dict.txt
+	python -m pungen.wordvec.preprocess --data-dir data/$(gdata)/skipgram \
+		--corpus data/$(gdata)/raw/train.txt \
+		--min-dist 5 --max-dist 10 --threshold 80 \
+		--vocab data/$(gdata)/skipgram/dict.txt
 
 train-skipgram:
-	python src/wordvec/train.py --weights --cuda --data data/onebillion/wordvec/train.bin --save_dir models/onebillion/wordvec --mb 3500 --epoch 10 --vocab data/onebillion/wordvec/dict.txt
+	python -m pungen.wordvec.train --weights --cuda --data data/$(gdata)/skipgram/train.bin --save_dir models/$(gdata)/skipgram --mb 3500 --epoch 15 --vocab data/$(gdata)/skipgram/dict.txt
 
 topk=10
 generate-skipgram:
 	python src/wordvec/generate.py --cuda --vocab data/$(data)/wordvec/dict.txt --model_path $(model) --pun-words semeval2017_task7/data/test/subtask3-heterographic-test.gold --puns data/semeval-pun/raw/hetero-pun.txt --output data/semeval-pun/kw-sent/gen-kw-1b.txt #--interact -k $(topk)
 
 fusion=prob
-insert=none
-combine=embedding
+insert=deleted
+combine=token
 train:
-	python src/train.py data/$(data)/bin/data -a $(model) --source-lang src --target-lang tgt \
+	python -m pungen.train data/$(gdata)/$(data)/bin/data -a $(model) --source-lang src --target-lang tgt \
 	--task edit --insert $(insert) --combine $(combine) \
 	--criterion cross_entropy \
 	--encoder lstm --decoder-attention True \
 	--optimizer adagrad --lr 0.01 --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 --clip-norm 5 \
-	--max-epoch 50 --max-tokens 6000 \
-	--save-dir models/$(data)/$(ckpt) --no-progress-bar --log-interval 100 --no-epoch-checkpoints \
+	--max-epoch 50 --max-tokens 7000 \
+	--save-dir models/$(gdata)/$(data)/$(ckpt) --no-progress-bar --log-interval 1000 --no-epoch-checkpoints \
 	#--pretrained-lm models/wikitext/wiki103.pt --mixing-weights learned --fusion-type $(fusion)
 
 preprocess-test:
@@ -127,15 +109,17 @@ parse-semeval:
 
 # Process generic corpus
 split-file:
-	split -l 1000000 data/bookcorpus/raw/sent.tokenized.txt data/bookcorpus/raw/parts/x
+	split -l 1000000 data/$(gdata)/raw/sent.tokenized.txt data/$(gdata)/raw/parts/x
 ## Parse in parallel
 # bash scripts/submit_preprocess.sh
+## Join files
+# ls --color=no * | xargs cat > ...
 ## Parsed to tokenized sentences
 # scripts/parsed_to_tokenized.py
 
 build-retriever:
 	#python -m pungen.retriever --doc-file data/onebillion/raw/sent.tokenized.ner.txt data/onebillion/raw/sent.tokenized.txt --path models/onebillion/retriever.pkl --overwrite
-	python -m pungen.retriever --doc-file data/bookcorpus/raw/sent.tokenized.txt --path models/bookcorpus/retriever.pkl --overwrite
+	python -m pungen.retriever --doc-file data/$(gdata)/raw/sent.tokenized.txt --path models/$(gdata)/retriever.pkl --overwrite
 
 human-corr:
 	python eval_scoring_func_corr.py --human-eval data/eval/sentences_with_scores.txt --lm-path models/wikitext --word-counts-path models/wikitext/dict.txt --types pun depun
@@ -152,3 +136,31 @@ train-pun:
 	--max-epoch 50 --max-tokens 6000 \
 	--save-dir models/$(data)/$(ckpt) --no-progress-bar --log-interval 1 --no-epoch-checkpoints \
 	--pretrained-lm models/wikitext/wiki103.pt --mixing-weights learned --fusion-type $(fusion)
+
+split-data:
+	python scripts/split.py -i data/$(gdata)/raw/sent.tokenized.parsed.txt -o data/$(gdata)/raw --split 0.9 0.1 --split-names train valid
+
+prepare-src-tgt-data:
+	set -e;
+	for split in train valid; do \
+		PYTHONPATH=. python scripts/make_src_tgt_files.py -i data/$(gdata)/raw/$$split.txt -o data/$(gdata)/$(data)/$$split --delete-frac 0.5; \
+	done
+
+fairseq-preprocess:
+	python preprocess.py --source-lang src --target-lang tgt \
+		--destdir data/$(gdata)/$(data)/bin/data --thresholdtgt 80 --thresholdsrc 80 \
+		--validpref data/$(gdata)/$(data)/valid \
+		--trainpref data/$(gdata)/$(data)/train \
+		--workers 8
+		#--srcdict data/$(gdata)/$(data)/bin/data/dict.src.txt \
+		#--tgtdict data/$(gdata)/$(data)/bin/data/dict.tgt.txt
+		#--trainpref data/$(gdata)/$(data)/train 
+		#--testpref data/$(data)/test \
+		#--tgtdict data/book/kw-sent/bin/data/dict.tgt.txt \
+
+fairseq-preprocess:
+	python preprocess.py --source-lang src --target-lang tgt \
+		--destdir data/$(gdata)/$(data)/bin/data --thresholdtgt 80 --thresholdsrc 80 \
+		--validpref data/$(gdata)/$(data)/valid \
+		--trainpref data/$(gdata)/$(data)/train \
+		--workers 8

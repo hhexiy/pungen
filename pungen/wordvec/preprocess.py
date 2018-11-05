@@ -8,6 +8,8 @@ import numpy as np
 
 from fairseq.data.dictionary import Dictionary
 
+from pungen.utils import sentence_iterator, get_lemma, Word
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -51,13 +53,12 @@ class Preprocess(object):
         else:
             print("building vocab...")
             d = Dictionary()
-            with open(filepath, 'r') as fin:
-                for step, line in enumerate(fin):
-                    if not step % 1000:
-                        print("working on {}kth line".format(step // 1000), end='\r')
-                    tokens = self.line_to_tokens(line.strip())
-                    for tok in tokens:
-                        d.add_symbol(tok)
+            for step, line in enumerate(sentence_iterator(filepath)):
+                if not step % 1000:
+                    print("working on {}kth line".format(step // 1000), end='\r')
+                tokens = [get_lemma(w, Word) for w in line]
+                for tok in tokens:
+                    d.add_symbol(tok)
             d.finalize(threshold=threshold, nwords=max_vocab)
             print('build done. vocab size {}'.format(len(d)))
             d.save('{}/dict.txt'.format(self.data_dir))
@@ -69,21 +70,17 @@ class Preprocess(object):
         print("converting corpus...")
         step = 0
         fout = open('{}/train.bin'.format(args.data_dir), 'wb')
-        with codecs.open(filepath, 'r', encoding='utf-8') as file:
-            for line in file:
-                step += 1
-                if not step % 1000:
-                    print("working on {}kth line".format(step // 1000), end='\r')
-                line = line.strip()
-                if not line:
-                    continue
-                sent = [self.vocab.index(w) for w in self.line_to_tokens(line)]
-                if len(sent) <= (self.max_dist - self.min_dist + 1):
-                    continue
-                for i in range(len(sent)):
-                    iword, owords = self.skipgram(sent, i)
-                    a = np.array([iword] + owords, dtype=np.uint16)
-                    fout.write(a.tobytes())
+        for step, line in enumerate(sentence_iterator(filepath)):
+            if not step % 1000:
+                print("working on {}kth line".format(step // 1000), end='\r')
+            tokens = [get_lemma(w, Word) for w in line]
+            sent = [self.vocab.index(w) for w in tokens]
+            if len(sent) <= (self.max_dist - self.min_dist + 1):
+                continue
+            for i in range(len(sent)):
+                iword, owords = self.skipgram(sent, i)
+                a = np.array([iword] + owords, dtype=np.uint16)
+                fout.write(a.tobytes())
         fout.close()
         print("conversion done")
 

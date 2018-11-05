@@ -17,6 +17,11 @@ def sentence_iterator(file_, n=-1, ner=False):
                     words.append(tags)
             yield words
 
+def get_lemma(word, props):
+    if word[props.LEMMA] == '-PRON-':
+        return word[props.TOKEN]
+    return word[props.LEMMA]
+
 def ensure_exist(path, is_dir=False):
     if not is_dir:
         dir_ = os.path.dirname(path)

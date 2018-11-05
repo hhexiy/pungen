@@ -10,8 +10,9 @@ import numpy as np
 from tqdm import tqdm
 from torch.optim import Adam
 from torch.utils.data import Dataset, DataLoader
-from model import Word2Vec, SGNS
 from fairseq.data.dictionary import Dictionary
+
+from .model import Word2Vec, SGNS
 
 
 def parse_args():
@@ -82,7 +83,7 @@ def train(args):
     if os.path.isfile(optimpath) and args.conti:
         optim.load_state_dict(t.load(optimpath))
     dataset = PermutedSubsampledCorpus(args.data, ws=ws)
-    dataloader = DataLoader(dataset, batch_size=args.mb, shuffle=True, num_workers=4)
+    dataloader = DataLoader(dataset, batch_size=args.mb, shuffle=True, num_workers=0)
     for epoch in range(1, args.epoch + 1):
         total_batches = int(np.ceil(len(dataset) / args.mb))
         pbar = tqdm(dataloader)
