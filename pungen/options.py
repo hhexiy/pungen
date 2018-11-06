@@ -9,6 +9,7 @@ def add_editor_args(parser):
     group.add_argument('--type-dict-path', default='models/types.json', help='JSON file of word types')
     group.add_argument('--num-topic-words', type=int, default=100, help='number of neighbors to predict for pun word')
     parser.add_argument('--skipgram-model', nargs=2, help='pretrained skipgram model [vocab, model]')
+    parser.add_argument('--skipgram-embed-size', type=int, default=300, help='word embedding size in skipgram model')
 
 def add_retriever_args(parser):
     group = parser.add_argument_group('Retrieval')

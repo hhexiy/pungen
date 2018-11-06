@@ -65,9 +65,8 @@ class RulebasedGenerator(object):
         #cands = set()
         #for s in sim_sents:
         #    cands.update(s)
-        cands = None
         # TODO: don't repeat
-        words = self.neighbor_predictor.predict_neighbors(pun_word, k=k, sim_words=None, cands=cands)
+        words = self.neighbor_predictor.predict_neighbors(pun_word, k=k)
         logger.debug('skipgram model scored {} words.'.format(len(words)))
 
         if del_word is not None:

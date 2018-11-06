@@ -17,7 +17,8 @@ class LMScorer(object):
     @classmethod
     def load_model(cls, path, cpu=False):
         # TODO: don't hardcode path
-        args = argparse.Namespace(data=path, path=path+'/wiki103.pt', cpu=cpu, task='language_modeling')
+        args = argparse.Namespace(data=path, path=path+'/wiki103.pt', cpu=cpu, task='language_modeling',
+                output_dictionary_size=-1, self_target=False, future_target=False, past_target=False)
         use_cuda = torch.cuda.is_available() and not cpu
         task = tasks.setup_task(args)
         print('| loading model(s) from {}'.format(args.path))

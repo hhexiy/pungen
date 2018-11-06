@@ -19,6 +19,7 @@ class TypeRecognizer(object):
         'location': ['<gpe>', '<loc>'],
         }
 
+    # TODO: don't need type_dict_path given that we can the cache_path
     def __init__(self, type_dict_path='models/types.json', cache_path='.cache/concept.json'):
         if os.path.exists(type_dict_path):
             self.type_dict = json.load(open(type_dict_path))

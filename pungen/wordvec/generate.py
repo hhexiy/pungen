@@ -12,38 +12,39 @@ from torch import FloatTensor as FT
 from fairseq.data.dictionary import Dictionary
 
 from .model import Word2Vec, SGNS
-from ..pretrained_wordvec import Glove
 
 class SkipGram(object):
-    def __init__(self, model, vocab, glove, use_cuda):
+    def __init__(self, model, vocab, use_cuda):
         self.model = model
         self.vocab = vocab
-        self.glove = glove
         if use_cuda:
             self.model.cuda()
 
     @classmethod
-    def load_model(cls, vocab_path, model_path, cpu=False):
+    def load_model(cls, vocab_path, model_path, embedding_size=300, cpu=False):
         d = Dictionary.load(vocab_path)
         vocab_size = len(d)
-        model = Word2Vec(vocab_size=vocab_size, embedding_size=300)
+        model = Word2Vec(vocab_size=vocab_size, embedding_size=embedding_size)
         sgns = SGNS(embedding=model, vocab_size=vocab_size, n_negs=1, weights=None)
-        print('| loading skipgram model')
+        logger.info('loading skipgram model')
         sgns.load_state_dict(torch.load(model_path))
         sgns.eval()
         use_cuda = torch.cuda.is_available() and not cpu
-        glove = Glove.from_pickle('data/onebillion/glove.pkl', vocab_path)
-        return cls(sgns, d, glove, use_cuda)
+        return cls(sgns, d, use_cuda)
 
-    def predict_neighbors(self, word, k=20, sim_words=None, cands=None):
+    # TODO: use lemma; add freq constraint
+    def predict_neighbors(self, word, k=20, cands=None):
         if cands:
             owords = [self.vocab.index(w) for w in cands]
         else:
             owords = range(len(self.vocab))
-        neighbors = self.topk_neighbors([word], owords, k=k, swords=sim_words, wordvec=self.glove)
+        # NOTE: 0 is <Lua heritage> in fairseq.data.dictionary
+        masked_words = [self.vocab.index(word), self.vocab.unk(), 0]
+        owords = [w for w in owords if not w in masked_words]
+        neighbors = self.topk_neighbors([word], owords, k=k)
         return neighbors
 
-    def topk_neighbors(self, words, owords, wordvec=None, swords=None, k=10):
+    def topk_neighbors(self, words, owords, k=10):
         """Find words in `owords` that are neighbors of `words` and are similar to `swords`.
         """
         vocab = self.vocab
@@ -58,50 +59,20 @@ class SkipGram(object):
         for iword in iwords:
             ivectors = self.model.embedding.forward_i([iword])
             score = torch.matmul(ovectors, ivectors.t())
-            # TODO: figure out why this line doesn't work
-            #score = FT(wordvec.similarity_scores(iword)).cuda()
             scores += score
-        probs = scores.squeeze().sigmoid()
+        probs = scores.squeeze()#.sigmoid()
 
-        # Compute similary by word vectors (i.e. forward_i)
-        #ovectors = self.model.embedding.forward_i(owords)
-        #if swords:
-        #    swords = [vocab.index(word) for word in swords]
-        #    for sword in swords:
-        #        svectors = self.model.embedding.forward_i([sword])
-        #        score = torch.matmul(ovectors, svectors.t())
-        #        scores += score
-        if swords:
-            scores = 0
-            for sword in swords:
-                # TODO: decide on cuda
-                score = FT(wordvec.similarity_scores(sword)).cuda()
-                scores += score
-            probs2 = scores.squeeze().sigmoid()
-            #probs2 = probs2[owords]
-        else:
-            probs2 = None
-
-        #if probs2 is not None:
-        #    probs = 0.3*probs + 0.7*probs2
-
-        to_remove = iwords + [vocab.unk(), 0]
-        # TODO: use mask for cands
-        #probs[to_remove] = 0.
         topk_prob, topk_id = torch.topk(probs, min(k, len(owords)))
         return [vocab[id_] for id_ in topk_id]
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', type=str, default='sgns', help="model name")
-    parser.add_argument('--vocab', type=str, default='./data/', help="data directory path")
-    parser.add_argument('--model-path', type=str, default='./pts/', help="model directory path")
-    parser.add_argument('--e_dim', type=int, default=300, help="embedding dimension")
+    parser.add_argument('--skipgram-model', nargs=2, help='pretrained skipgram model [vocab, model]')
+    parser.add_argument('--skipgram-embed-size', type=int, default=300, help='word embedding size in skipgram model')
     parser.add_argument('--cuda', action='store_true', help="use CUDA")
     parser.add_argument('--pun-words')
-    parser.add_argument('--puns')
-    parser.add_argument('--homo', action='store_true')
-    parser.add_argument('--interact', action='store_true')
+    parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--interactive', action='store_true')
     parser.add_argument('-k', help='number of neighbors to query', default=2, type=int)
     parser.add_argument('--output')
     return parser.parse_args()
@@ -135,48 +106,34 @@ def read_pun(filename):
             yield line.strip()
 
 def main(args):
-    print('loading dict')
-    d = Dictionary.load(args.vocab)
-    vocab_size = len(d)
-    model = Word2Vec(vocab_size=vocab_size, embedding_size=args.e_dim)
-    sgns = SGNS(embedding=model, vocab_size=vocab_size, n_negs=1, weights=None)
-    glove = Glove.from_pickle('data/onebillion/glove.pkl', args.vocab)
-    print('loading model')
-    sgns.load_state_dict(torch.load(args.model_path))
-    if args.cuda:
-        sgns = sgns.cuda()
-    sgns.eval()
-
-    if args.interact:
-        owords = range(vocab_size)
+    skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
+    if args.interactive:
         while True:
-            #s = input('word: ')
-            #iwords = s.split()
-            #s = input('sim word: ')
-            #swords = s.split()
-            iwords = ['gene']
-            swords = ['gene']
-            neighbors = topk_neighbors(iwords, owords, d, sgns, k=args.k + 5, swords=swords, wordvec=glove)
-            print(neighbors)
-            import sys; sys.exit()
+            word = input('word: ')
+            topic_words = skipgram.predict_neighbors(word, k=args.k)
+            print(topic_words)
 
+    puns = json.load(open(args.pun_words))
+    results = []
+    for example in puns:
+        alter_word, pun_word = example['pun_word'], example['alter_word']
+        alter_topic_words = skipgram.predict_neighbors(alter_word, k=args.k)
+        pun_topic_words = skipgram.predict_neighbors(pun_word, k=args.k)
+        print(alter_word)
+        print(alter_topic_words)
+        print(pun_word)
+        print(pun_topic_words)
+        r = {
+                'id': example['id'],
+                'pun_word': pun_word,
+                'alter_word': alter_word,
+                'pun_topic_words': pun_topic_words,
+                'alter_topic_words': alter_topic_words
+            }
+        results.append(r)
+    json.dump(results, open(args.output, 'w'))
 
-    owords = range(vocab_size)
-    fout = open(args.output, 'w')
-    i = 0
-    for (pun_word, alter_word, pun_sense, alter_sense), sent in zip(read_pun_word(args.pun_words, args.homo), read_pun(args.puns)):
-        if pun_sense == alter_sense:
-            continue
-        pun_word_neighbors = topk_neighbors([pun_sense], owords, d, sgns, k=args.k + 5)
-        alter_word_neighbors = topk_neighbors([alter_sense], owords, d, sgns, k=args.k + 5)
-        if not pun_word_neighbors or not alter_word_neighbors:
-            continue
-        #print(pun_word_neighbors)
-        #print(alter_word_neighbors)
-        words = pun_word_neighbors[:1] + alter_word_neighbors[:1] + [alter_word]
-        fout.write('{} | {} | {}\n'.format(' '.join([pun_sense, alter_sense, pun_word, alter_word]), ' '.join(words), sent))
-        i += 1
-    fout.close()
 
 if __name__ == '__main__':
+    import json
     main(parse_args())
