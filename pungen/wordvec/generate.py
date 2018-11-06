@@ -1,10 +1,11 @@
 import argparse
 import os
 import pickle
-from nltk.corpus import wordnet as wn
 import logging
-logger = logging.getLogger('pungen')
-logger.setLevel(logging.INFO)
+from nltk.corpus import wordnet as wn
+
+import spacy
+nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
 
 import torch
 from torch import LongTensor as LT
@@ -26,22 +27,31 @@ class SkipGram(object):
         vocab_size = len(d)
         model = Word2Vec(vocab_size=vocab_size, embedding_size=embedding_size)
         sgns = SGNS(embedding=model, vocab_size=vocab_size, n_negs=1, weights=None)
-        logger.info('loading skipgram model')
+        logging.info('loading skipgram model')
         sgns.load_state_dict(torch.load(model_path))
         sgns.eval()
         use_cuda = torch.cuda.is_available() and not cpu
         return cls(sgns, d, use_cuda)
 
-    # TODO: use lemma; add freq constraint
+    # TODO: add freq constraint
     def predict_neighbors(self, word, k=20, cands=None):
+        # take lemma
+        logging.debug('word={}'.format(word))
+        word_ = nlp(word)[0]
+        if word_.lemma_ != '-PRON-':
+            word = word_.lemma_
+        logging.debug('lemma={}'.format(word))
+
         if cands:
             owords = [self.vocab.index(w) for w in cands]
         else:
             owords = range(len(self.vocab))
+
         # NOTE: 0 is <Lua heritage> in fairseq.data.dictionary
-        masked_words = [self.vocab.index(word), self.vocab.unk(), 0]
-        owords = [w for w in owords if not w in masked_words]
+        masked_inds = [self.vocab.index(word), self.vocab.unk(), self.vocab.eos(), 0]
+        owords = [w for w in owords if not w in masked_inds and self.vocab.count[w] > 100]
         neighbors = self.topk_neighbors([word], owords, k=k)
+
         return neighbors
 
     def topk_neighbors(self, words, owords, k=10):
@@ -51,7 +61,7 @@ class SkipGram(object):
         iwords = [vocab.index(word) for word in words]
         for iword, w in zip(iwords, words):
             if iword == vocab.unk():
-                logger.info('unknown input word: {}'.format(w))
+                logging.info('unknown input word: {}'.format(w))
                 return []
 
         ovectors = self.model.embedding.forward_o(owords)
@@ -63,7 +73,7 @@ class SkipGram(object):
         probs = scores.squeeze()#.sigmoid()
 
         topk_prob, topk_id = torch.topk(probs, min(k, len(owords)))
-        return [vocab[id_] for id_ in topk_id]
+        return [vocab[owords[id_]] for id_ in topk_id]
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -74,7 +84,9 @@ def parse_args():
     parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--interactive', action='store_true')
     parser.add_argument('-k', help='number of neighbors to query', default=2, type=int)
+    parser.add_argument('-n', help='number of examples to process', default=-1, type=int)
     parser.add_argument('--output')
+    parser.add_argument('--logfile')
     return parser.parse_args()
 
 def get_sense(word):
@@ -115,14 +127,16 @@ def main(args):
 
     puns = json.load(open(args.pun_words))
     results = []
-    for example in puns:
+    for i, example in enumerate(puns):
+        if i == args.n:
+            break
         alter_word, pun_word = example['pun_word'], example['alter_word']
         alter_topic_words = skipgram.predict_neighbors(alter_word, k=args.k)
         pun_topic_words = skipgram.predict_neighbors(pun_word, k=args.k)
-        print(alter_word)
-        print(alter_topic_words)
-        print(pun_word)
-        print(pun_topic_words)
+        logging.debug(alter_word)
+        logging.debug(alter_topic_words)
+        logging.debug(pun_word)
+        logging.debug(pun_topic_words)
         r = {
                 'id': example['id'],
                 'pun_word': pun_word,
@@ -136,4 +150,7 @@ def main(args):
 
 if __name__ == '__main__':
     import json
-    main(parse_args())
+    from pungen.utils import logging_config
+    args = parse_args()
+    logging_config(filename=args.logfile)
+    main(args)

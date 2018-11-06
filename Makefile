@@ -30,7 +30,12 @@ train-skipgram:
 
 topk=10
 generate-skipgram:
-	python src/wordvec/generate.py --cuda --vocab data/$(data)/wordvec/dict.txt --model_path $(model) --pun-words semeval2017_task7/data/test/subtask3-heterographic-test.gold --puns data/semeval-pun/raw/hetero-pun.txt --output data/semeval-pun/kw-sent/gen-kw-1b.txt #--interact -k $(topk)
+	python -m pungen.wordvec.generate --cuda \
+		--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt \
+		--pun-words data/semeval/hetero/dev.json \
+		--output results/semeval/hetero/dev.topic_words.json \
+		--logfile results/semeval/hetero/dev.topic_words.log \
+		--cuda -k 50
 
 fusion=prob
 insert=deleted
@@ -84,18 +89,16 @@ system=rule
 gdata=bookcorpus
 generate-pun:
 	#python src/generate_pun.py --doc-file data/$(data)/raw/sent.txt --lm-path models/wikitext --retriever-path models/retriever-1b.pkl --skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt --keywords data/manual/pun.txt
-	python generate_pun.py data/$(data)/bin/data \
-		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
+	python generate_pun.py data \
+		--path models/$(gdata)/$(data)/$(ckpt)/checkpoint_best.pt \
 		--beam 20 --nbest 1 --unkpen 100 \
 		--system $(system) \
-		--doc-file data/$(gdata)/raw/sent.tokenized.txt \
-		--retriever-model models/$(gdata)/retriever.pkl \
+		--retriever-model models/$(gdata)/retriever.pkl --doc-file data/$(gdata)/raw/sent.tokenized.txt \
 		--lm-path models/wikitext --word-counts-path models/wikitext/dict.txt \
-		--skipgram-model data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt \
+		--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt \
 		--num-topic-word 1000 \
 		--pun-words data/semeval/hetero/dev.json \
 		--output results/$(system).json 
-		#--keywords data/manual/pun.txt
 
 neural-generate:
 	python src/generator.py data/$(data)/bin/data \
@@ -138,7 +141,7 @@ train-pun:
 	--pretrained-lm models/wikitext/wiki103.pt --mixing-weights learned --fusion-type $(fusion)
 
 split-data:
-	python scripts/split.py -i data/$(gdata)/raw/sent.tokenized.parsed.txt -o data/$(gdata)/raw --split 0.9 0.1 --split-names train valid
+	python scripts/split.py -i data/$(gdata)/raw/sent.tokenized.parsed.txt -o data/$(gdata)/raw --split 0.9 0.1 --split-names train valid --shuffle
 
 prepare-src-tgt-data:
 	set -e;
@@ -158,9 +161,19 @@ fairseq-preprocess:
 		#--testpref data/$(data)/test \
 		#--tgtdict data/book/kw-sent/bin/data/dict.tgt.txt \
 
-fairseq-preprocess:
-	python preprocess.py --source-lang src --target-lang tgt \
+fairseq-preprocess-lm:
+	python -m pungen.preprocess --only-source \
 		--destdir data/$(gdata)/$(data)/bin/data --thresholdtgt 80 --thresholdsrc 80 \
-		--validpref data/$(gdata)/$(data)/valid \
-		--trainpref data/$(gdata)/$(data)/train \
+		--validpref data/$(gdata)/$(data)/valid.txt \
+		--trainpref data/$(gdata)/$(data)/train.txt \
 		--workers 8
+
+train-lm:
+	python -m pungen.train --task language_modeling data/$(gdata)/$(data)/bin/data \
+	  --max-epoch 35 --arch lstm_lm --optimizer adagrad \
+	  --lr 0.01 --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 --clip-norm 5 \
+	  --criterion adaptive_loss \
+	  --decoder-embed-dim 1024 --decoder-layers 2 --decoder-attention False \
+	  --adaptive-softmax-cutoff 10000,20000,40000 --max-tokens 6000 --tokens-per-sample 1024 --ddp-backend no_c10d
+
+
