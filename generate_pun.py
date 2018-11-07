@@ -46,11 +46,12 @@ def main(args):
     #lm = None
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     scorer = PunScorer(lm, unigram_model)
-    type_recognizer = TypeRecognizer(args.type_dict_path)
+    #type_recognizer = TypeRecognizer(args.type_dict_path)
+    type_recognizer = TypeRecognizer()
     if args.system == 'rule':
-        generator = RulebasedGenerator(retriever, skipgram, type_recognizer, scorer)
+        generator = RulebasedGenerator(retriever, skipgram, type_recognizer, scorer, dist_to_pun=args.distance_to_pun_word)
     else:
-        generator = NeuralCombinerGenerator(retriever, skipgram, type_recognizer, scorer, args)
+        generator = NeuralCombinerGenerator(retriever, skipgram, type_recognizer, scorer, args.distance_to_pun_word, args)
 
     puns = json.load(open(args.pun_words))
     for example in puns:
@@ -64,9 +65,11 @@ def main(args):
             logger.info('FAIL: unknown pun word: {}'.format(pun_word))
             continue
 
-        results = generator.generate(alter_word, pun_word, k=args.num_topic_words, ncands=args.num_candidates, ntemps=args.num_templates)
+        results = generator.generate(alter_word, pun_word, k=args.num_topic_words, ncands=args.num_candidates, ntemps=args.num_templates, pos_th=args.pos_threshold)
+        example['results'] = results
         if not results:
             continue
+
         results = [r for r in results if r.get('score') is not None]
 
         # group by template
@@ -82,7 +85,6 @@ def main(args):
             sorted_group_results[id_] = results_
         # sort across templates
         sorted_groups = sorted(sorted_group_results.values(), key=lambda x: sum([x_['score'] for x_ in x]), reverse=True)
-        example['results'] = sorted_groups
 
         for results in sorted_groups:
             logger.debug('RETRIEVED: {}'.format(results[0]['retrieved']))

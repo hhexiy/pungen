@@ -92,12 +92,12 @@ generate-pun:
 		--path models/$(gdata)/$(data)/$(ckpt)/checkpoint_best.pt \
 		--beam 20 --nbest 1 --unkpen 100 \
 		--system $(system) \
-		--retriever-model models/$(gdata)/retriever.pkl --doc-file data/$(gdata)/raw/sent.tokenized.txt \
+		--retriever-model models/$(gdata)/retriever.pkl --doc-file data/$(gdata)/raw/sent.tokenized.txt --pos-threshold 0. \
 		--lm-path models/wikitext --word-counts-path models/wikitext/dict.txt \
 		--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt \
-		--num-topic-word 1000 \
+		--num-topic-word 500 \
 		--pun-words data/semeval/hetero/dev.json \
-		--outdir results/semeval/hetero/$(system)
+		--outdir results/semeval/hetero/$(outdir)
 
 neural-generate:
 	python src/generator.py data/$(data)/bin/data \

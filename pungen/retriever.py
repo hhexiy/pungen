@@ -3,6 +3,7 @@ import os, sys
 import numpy as np
 import time
 import pickle
+from functools import total_ordering
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from .utils import sentence_iterator, Word
@@ -10,15 +11,47 @@ from .utils import sentence_iterator, Word
 import logging
 logger = logging.getLogger('pungen')
 
+
+@total_ordering
+class Template(object):
+    def __init__(self, tokens, keyword):
+        self.tokens = tokens
+        self.keyword_positions = [i for i, w in enumerate(tokens) if w == keyword]
+        self.num_key = len(self.keyword_positions)
+        self.keyword_id = None if self.num_key == 0 else max(self.keyword_positions)
+
+    def replace_keyword(self, word):
+        tokens = list(self.tokens)
+        tokens[self.keyword_id] = word
+        return tokens
+
+    def __str__(self):
+        return ' '.join(['[{}]'.format(w) if i == self.keyword_id else w for i, w in enumerate(self.tokens)])
+
+    def __lt__(self, other):
+        # Containing keyword is better
+        if self.num_key == 0:
+            return True
+        # Fewer keywords is better
+        if self.num_key > other.num_key:
+            return True
+        # Later keywords is better
+        if self.keyword_id < other.keyword_id:
+            return True
+        return False
+
+    def __eq__(self, other):
+        if self.num_key == 0 and other.num_key == 0:
+            return True
+        if self.num_key == other.num_key and self.keyword_id == other.keyword_id:
+            return True
+        return False
+
+
 class Retriever(object):
     def __init__(self, doc_files, path=None, overwrite=False):
         logger.info('reading retriever docs from {}'.format(' '.join(doc_files)))
         self.docs = [line.strip() for line in open(doc_files[0], 'r')]
-        # TODO: in future we will not do NER abstraction, so no need to have ori_docs
-        if len(doc_files) > 1:
-            self.ori_docs = [line.strip() for line in open(doc_files[1], 'r')]
-        else:
-            self.ori_docs = self.docs
 
         if overwrite or (path is None or not os.path.exists(path)):
             logger.info('building retriever index')
@@ -49,26 +82,35 @@ class Retriever(object):
         ids = np.argsort(scores)[-k:][::-1]
         return ids
 
-    def check_pos(self, sent, word, pos_threshold):
-        pos = [i for i, w in enumerate(sent) if w == word]
-        if len(pos) != 1:
-            return False
-        p = pos[0]
-        if p < min(int(len(sent) * pos_threshold), len(sent) - 1):
-            return False
-        return True
+    #def check_pos(self, sent, word, pos_threshold):
+    #    pos = [i for i, w in enumerate(sent) if w == word]
+    #    if len(pos) == 0:
+    #        return False
+    #    p = max(pos)
+    #    if p < min(int(len(sent) * pos_threshold), len(sent) - 1):
+    #        return False
+    #    return True
 
-    def check_len(self, sent, len_threshold):
-        if len(sent) < len_threshold:
-            return False
-        return True
+    #def check_len(self, sent, len_threshold):
+    #    if len(sent) < len_threshold:
+    #        return False
+    #    return True
 
     def retrieve_pun_template(self, pun_word, alter_word, len_threshold=10, pos_threshold=0.5, num_cands=500, num_templates=None):
         ids = self.query(alter_word, num_cands)
-        sents = [self.docs[id_].split() for id_ in ids]
-        ori_sents = [self.ori_docs[id_].split() for id_ in ids]
+        templates = [Template(self.docs[id_].split(), alter_word) for id_ in ids]
+        templates = [t for t in templates if t.num_key > 0 and len(t.tokens) > len_threshold]
+        if len(templates) == 0:
+            logger.info('FAIL: no retrieved sentence contains the keyword {}.'.format(alter_word))
+            return [], [], []
+
+        templates = sorted(templates, reverse=True)[:num_templates]
+        return templates
+
+        alter_sents = [t.tokens for t in templates]
+        pun_sents = [t.replace_keyword(pun_word) for t in templates]
+
         alter_sents = []
-        alter_ori_sents = []
         pun_sents = []
         pun_word_ids = []
         count = 0
@@ -85,7 +127,7 @@ class Retriever(object):
                 pun_word_ids.append(id_)
         if len(pun_sents) == 0:
             logger.info('FAIL: no retrieved sentence has length > {l} \
-                    and "{w}" occurs before {p} of the sentence.'.format(
+                    and has "{w}" after {p} of the sentence.'.format(
                         l=len_threshold, w=alter_word, p=pos_threshold))
         return alter_sents, pun_sents, pun_word_ids, alter_ori_sents
 

@@ -30,23 +30,23 @@ for ent in ('<org>', '<person>', '<date>', '<time>', '<gpe>', '<norp>',
 Batch = namedtuple('Batch', 'srcs tokens lengths')
 
 class RulebasedGenerator(object):
-    def __init__(self, retriever, neighbor_predictor, type_recognizer, scorer, beginning_portion=0.3):
+    def __init__(self, retriever, neighbor_predictor, type_recognizer, scorer, dist_to_pun=5):
         self.retriever = retriever
         self.neighbor_predictor = neighbor_predictor
         self.scorer = scorer
-        self.beginning_portion = beginning_portion
+        self.dist_to_pun = dist_to_pun
         self.type_recognizer = type_recognizer
 
     def _delete_candidates(self, parsed_sent, pun_word_id):
-        n = max(0, int(self.beginning_portion * len(parsed_sent)))
-        noun_ids = [i for i in range(min(n+1, pun_word_id))
-                if parsed_sent[i].pos_ in ('NOUN', 'PROPN', 'PRON') and
-                    (parsed_sent[i].dep_.startswith('nsubj') or
-                    parsed_sent[i].dep_ == 'ROOT')]
+        noun_ids = [i for i in range(max(1, pun_word_id - self.dist_to_pun))
+                if parsed_sent[i].pos_ in ('NOUN', 'PROPN', 'PRON')]
+                    #and (parsed_sent[i].dep_.startswith('nsubj') or
+                    #parsed_sent[i].dep_ == 'ROOT')]
         return noun_ids
 
-    def delete_words(self, sents, pun_word_ids):
-        parsed_sents = nlp.pipe([' '.join(s) for s in sents])
+    def delete_words(self, templates):
+        parsed_sents = nlp.pipe([' '.join(t.tokens) for t in templates])
+        pun_word_ids = [t.keyword_id for t in templates]
         for parsed_sent, pun_word_id in zip(parsed_sents, pun_word_ids):
             ids = self._delete_candidates(parsed_sent, pun_word_id)
             if not ids:
@@ -60,7 +60,7 @@ class RulebasedGenerator(object):
         del_word = get_lemma(del_word)
 
         # type constraints
-        types = self.type_recognizer.get_type(del_word)
+        types = self.type_recognizer.get_type(del_word, 'noun')
         if len(types) == 0:
             logger.info('FAIL: deleted word "{}" has unknown type.'.format(del_word))
             return []
@@ -68,25 +68,25 @@ class RulebasedGenerator(object):
         words = self.neighbor_predictor.predict_neighbors(pun_word, k=k, masked_words=[del_word])
 
         # POS constraints
-        new_words = []
-        parsed_words = nlp.pipe(words)
-        for w in parsed_words:
-            w_ = w[0]
-            if w_.pos_ in tags:
-                new_words.append(w_.lemma_)
-        words = new_words
-        if len(words) == 0:
-            logger.info('FAIL: no topic words has POS in {}.'.format(','.join(tags)))
-            return words
+        #new_words = []
+        #parsed_words = nlp.pipe(words)
+        #for w in parsed_words:
+        #    w_ = w[0]
+        #    if w_.pos_ in tags:
+        #        new_words.append(w_.lemma_)
+        #words = new_words
+        #if len(words) == 0:
+        #    logger.info('FAIL: no topic words has POS in {}.'.format(','.join(tags)))
+        #    return words
 
         # type constraints
         new_words = []
         for w in words:
-            if self.type_recognizer.is_types(w, types):
+            if self.type_recognizer.is_types(w, types, 'noun'):
                 new_words.append(w)
         words = new_words
         if len(words) == 0:
-            logger.info('FAIL: no topic words has type in {}.'.format(','.join(types)))
+            logger.info('FAIL: no topic words has same type as {}.'.format(del_word))
 
         return words
 
@@ -101,29 +101,35 @@ class RulebasedGenerator(object):
         s[delete_id] = insert_word
         yield s, pun_word_id
 
-    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10):
+    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10, pos_th=0.5):
         """
         Args:
             k (int): number of topic words returned by skipgram (before filtering)
             ncands (int): number of sentences returned by retriever (before filtering)
             ntemps (int): number of templates returned by retriever (after filtering)
         """
-        alter_sents, pun_sents, pun_word_ids, alter_ori_sents = self.retriever.retrieve_pun_template(pun_word, alter_word, num_cands=ncands, num_templates=ntemps)
+        templates = self.retriever.retrieve_pun_template(pun_word, alter_word, num_cands=ncands, num_templates=ntemps, pos_threshold=pos_th)
+
         results = []
-        for i, (alter_sent, pun_sent, pun_word_id, alter_ori_sent, (delete_span_ids, delete_word_id)) in enumerate(zip(alter_sents, pun_sents, pun_word_ids, alter_ori_sents, self.delete_words(alter_sents, pun_word_ids))):
+        for i, (template, (delete_span_ids, delete_word_id)) in enumerate(zip(templates, self.delete_words(templates))):
+            #logger.debug(str(template))
+            alter_sent = template.tokens
+            pun_sent = template.replace_keyword(pun_word)
+            pun_word_id = template.keyword_id
+
             r = {}
             r['template-id'] = i
             r['template'] = alter_sent
             r['retrieved'] = ' '.join(list(pun_sent))
-            #delete_span_ids, delete_word_id  = self.delete_words(alter_sent, pun_word_id)
+
             if not delete_word_id:
-                r['deleted'] = None
+                #logger.debug('nothing to delete')
                 results.append(r)
                 continue
             r['deleted'] = alter_sent[delete_word_id]
+
             topic_words = self.get_topic_words(pun_word, k=k, del_word=alter_sent[delete_word_id], context=pun_sent)
             if not topic_words:
-                r['topic_words'] = None
                 results.append(r)
                 continue
             #print(' '.join(alter_sent))
@@ -131,6 +137,7 @@ class RulebasedGenerator(object):
             #print(topic_words)
             #print()
             #continue
+
             for w in topic_words:
                 for s, new_pun_word_id in self.rewrite(pun_sent, delete_span_ids, w, pun_word_id):
                     alter_word = alter_sent[pun_word_id]
@@ -139,6 +146,7 @@ class RulebasedGenerator(object):
                     r = dict(r)
                     r.update({'inserted': w, 'output': s, 'score': score})
                     results.append(r)
+
         return results
 
 class NeuralSLGenerator(object):
@@ -236,8 +244,8 @@ class NeuralSLGenerator(object):
 
 
 class NeuralCombinerGenerator(RulebasedGenerator):
-    def __init__(self, retriever, neighbor_predictor, type_recognizer, scorer, args):
-        super().__init__(retriever, neighbor_predictor, type_recognizer, scorer)
+    def __init__(self, retriever, neighbor_predictor, type_recognizer, scorer, dist_to_pun, args):
+        super().__init__(retriever, neighbor_predictor, type_recognizer, scorer, dist_to_pun)
 
         task, model, model_args = self.load_model(args)
 
@@ -313,26 +321,8 @@ class NeuralCombinerGenerator(RulebasedGenerator):
             results.append(hypo_str.split())
         return results
 
-    def _delete_words(self, alter_sent, pun_word_id):
-        parsed_alter_sent = nlp(' '.join(alter_sent))
-        noun_ids = [i for i in range(pun_word_id)
-                if parsed_alter_sent[i].pos_ in ('NOUN', 'PROPN', 'PRON') and
-                True]
-                #(parsed_alter_sent[i].dep_.startswith('nsubj') or
-                #    parsed_alter_sent[i].dep_ == 'ROOT')]
-        if not noun_ids:
-            return None, None
-
-        id_ = noun_ids[0]
-        deleted = [id_]
-        if id_ - 1 >= 0: #and not parsed_alter_sent[id_ - 1].pos_ in ('NOUN', 'VERB'):
-            deleted.insert(0, id_ - 1)
-        if id_ + 1 < len(alter_sent): #and not parsed_alter_sent[id_ + 1].pos_ in ('NOUN', 'VERB') :
-            deleted.append(id_ + 1)
-        return deleted, id_
-
-    def delete_words(self, sents, pun_word_ids):
-        for sent, (del_span, del_word) in zip(sents, super().delete_words(sents, pun_word_ids)):
+    def delete_words(self, templates):
+        for sent, (del_span, del_word) in zip(sents, super().delete_words(templates)):
             if del_span is None:
                 yield None, None
             else:

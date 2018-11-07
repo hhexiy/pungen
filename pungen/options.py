@@ -10,6 +10,7 @@ def add_editor_args(parser):
     group.add_argument('--num-topic-words', type=int, default=100, help='number of neighbors to predict for pun word')
     parser.add_argument('--skipgram-model', nargs=2, help='pretrained skipgram model [vocab, model]')
     parser.add_argument('--skipgram-embed-size', type=int, default=300, help='word embedding size in skipgram model')
+    parser.add_argument('--distance-to-pun-word', type=int, default=5, help='minimum distance of editted word to pun word')
 
 def add_retriever_args(parser):
     group = parser.add_argument_group('Retrieval')
@@ -18,6 +19,7 @@ def add_retriever_args(parser):
     group.add_argument('--overwrite-retriever-model', action='store_true', help='overwrite existing retriever model; rebuild from doc_file')
     group.add_argument('--num-candidates', type=int, default=500, help='number of sentences to retrieve')
     group.add_argument('--num-templates', type=int, default=10, help='number of maximum pun templates to return')
+    group.add_argument('--pos-threshold', type=float, default=0., help='pun word must occur after the thresholding position [0, 1] in a sentence')
 
 def add_generic_args(parser):
     parser.add_argument('--logfile')
