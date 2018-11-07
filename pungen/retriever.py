@@ -102,34 +102,10 @@ class Retriever(object):
         templates = [t for t in templates if t.num_key > 0 and len(t.tokens) > len_threshold]
         if len(templates) == 0:
             logger.info('FAIL: no retrieved sentence contains the keyword {}.'.format(alter_word))
-            return [], [], []
+            return []
 
         templates = sorted(templates, reverse=True)[:num_templates]
         return templates
-
-        alter_sents = [t.tokens for t in templates]
-        pun_sents = [t.replace_keyword(pun_word) for t in templates]
-
-        alter_sents = []
-        pun_sents = []
-        pun_word_ids = []
-        count = 0
-        for ori_sent, sent in zip(ori_sents, sents):
-            if self.check_len(sent, len_threshold) and \
-                    self.check_pos(sent, alter_word, pos_threshold):
-                count += 1
-                if num_templates and count > num_templates:
-                    break
-                alter_sents.append(sent)
-                alter_ori_sents.append(ori_sent)
-                pun_sents.append([x if x != alter_word else pun_word for x in sent])
-                id_ = [i for i, w in enumerate(sent) if w == alter_word][0]
-                pun_word_ids.append(id_)
-        if len(pun_sents) == 0:
-            logger.info('FAIL: no retrieved sentence has length > {l} \
-                    and has "{w}" after {p} of the sentence.'.format(
-                        l=len_threshold, w=alter_word, p=pos_threshold))
-        return alter_sents, pun_sents, pun_word_ids, alter_ori_sents
 
 
 if __name__ == '__main__':

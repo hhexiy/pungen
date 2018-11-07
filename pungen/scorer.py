@@ -5,6 +5,9 @@ import numpy as np
 from fairseq import data, options, tasks, utils, tokenizer
 from fairseq.sequence_scorer import SequenceScorer
 
+import spacy
+nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
+
 import logging
 logger = logging.getLogger('pungen')
 
@@ -130,6 +133,93 @@ class PunScorer(object):
         else:
             r = local_surprisal / global_surprisal  # larger is better
             return float(r + gram)
+
+class GoodmanPunScorer(object):
+    def __init__(self, lm, um, skipgram):
+        self.lm = lm
+        self.um = um
+        self.skipgram = skipgram
+
+    def unigram_logprob(self, w):
+        return self.um._score(w)
+
+    def assignment_prior(self, sent):
+        return len(sent) * np.log(0.5)
+
+    def _word_likelihood(self, w, m, f):
+        """\sum_{f \in {0, 1}} p(w | f, m)
+        Args:
+            w (str): word
+            f (int): {0, 1} meaning assignment
+            m (str): {pun word, alter word} meaning
+        Return:
+            probability
+        """
+        # p(w | m, f=1) = p(w | m)
+        if f == 1:
+            return self.skipgram.score(iword=m, oword=w)
+        # p(w | m, f=0) = p(w)
+        else:
+            return np.exp(self.unigram_logprob(w))
+
+    def word_likelihood(self, w, m):
+        return np.log(self._word_likelihood(w, m, 1) + self._word_likelihood(w, m, 0))
+
+    def meaning_prior(self, meanings):
+        probs = [np.exp(self.unigram_logprob(m)) for m in meanings]
+        z = sum(probs)
+        logprobs = [np.log(p / z) for p in probs]
+        return logprobs
+
+    def meaning_posterior(self, m, sent, meaning_prior):
+        """p(m | sent)
+        """
+        #lm_scores = self.lm.score_sents([sent])[0]
+        #assert len(lm_scores) == len(sent)
+        # NOTE: cannot use LM here because sent only contains content words
+
+        # everything is in the log space
+        # NOTE: need to renormalize priors
+        #meaning_prior = self.unigram_logprob(m)
+        assignment_prior = self.assignment_prior(sent)
+        sent_likelihood = np.sum([self.word_likelihood(w, m) for w, lm_score in zip(sent, lm_scores)])
+
+        return meaning_prior + assignment_prior + sent_likelihood
+
+    def ambiguity(self, pun_word, alter_word, sent):
+        meanings = [pun_word, alter_word]
+        priors = self.meaning_prior(meanings)
+        posteriors = [self.meaning_posterior(m, sent, p) for m, p in zip(meanings, priors)]
+        entropy = -1 * sum([p * np.log(p) for p in posteriors])
+        return entropy
+
+    def kl_div(self, p1, p2):
+        return np.sum([p1_ * np.log(p1_ / p2_) for p1_, p2_ in zip(p1, p2)])
+
+    def distinctiveness(self, pun_word, alter_word, sent):
+        # NOTE: we cannot use joint distribution
+        kl_divs = []
+        for w in sent:
+            p1 = [self._word_likelihood(w, pun_word, f) for f in (0, 1)]
+            p2 = [self._word_likelihood(w, alter_word, f) for f in (0, 1)]
+            d = self.kl_div(p1, p2) + self.kl_div(p2, p1)
+            kl_divs.append(d)
+        return np.mean(kl_divs)
+
+    def is_content(self, tag):
+        if tag.startswith('NN') or \
+           tag.startswith('VB') or \
+           tag.startswith('JJ'):
+            return True
+        return False
+
+    def score(self, pun_sent, pun_word_id, alter_word):
+        pun_word = pun_sent[pun_word_id]
+        parsed_sent = nlp(pun_sent)
+        content_words = [x.text for x in parsed_sent if self.is_content(x.tag_)]
+        ambiguity = self.ambiguity(pun_word, alter_word, content_words)
+        distinctiveness = self.distinctiveness(pun_word, alter_word, content_words)
+        return ambiguity + distinctiveness
 
 
 if __name__ == '__main__':

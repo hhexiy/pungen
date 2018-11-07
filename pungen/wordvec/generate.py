@@ -50,6 +50,17 @@ class SkipGram(object):
 
         return neighbors
 
+    def score(self, iword, oword):
+        """p(oword | iword)
+        """
+        iword = [self.vocab.index(iword)]
+        oword = [self.vocab.index(oword)]
+        ovector = self.model.embedding.forward_o(oword)
+        ivector = self.model.embedding.forward_i(iword)
+        score = torch.matmul(ovector, ivector.t())
+        prob = score.squeeze().sigmoid()
+        return prob.cpu().numpy()
+
     def topk_neighbors(self, words, owords, k=10):
         """Find words in `owords` that are neighbors of `words` and are similar to `swords`.
         """

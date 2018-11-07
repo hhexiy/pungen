@@ -61,6 +61,10 @@ def main(args):
         logger.info('REFERENCE: {}'.format(' '.join(example['tokens'])))
         logger.info('-'*50)
 
+        if len(alter_word.split('_')) > 1 or len(pun_word.split('_')) > 1:
+            logger.info('FAIL: cannot handle phrase')
+            continue
+
         if skipgram.vocab.index(get_lemma(pun_word)) == skipgram.vocab.unk():
             logger.info('FAIL: unknown pun word: {}'.format(pun_word))
             continue
