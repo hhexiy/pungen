@@ -20,6 +20,7 @@ class SkipGram(object):
         self.vocab = vocab
         if use_cuda:
             self.model.cuda()
+        self.model.eval()
 
     @classmethod
     def load_model(cls, vocab_path, model_path, embedding_size=300, cpu=False):
@@ -50,16 +51,19 @@ class SkipGram(object):
 
         return neighbors
 
-    def score(self, iword, oword):
+    def score(self, iword, oword, lemma=False):
         """p(oword | iword)
         """
+        if not lemma:
+            iword = get_lemma(iword)
+            oword = get_lemma(oword)
         iword = [self.vocab.index(iword)]
         oword = [self.vocab.index(oword)]
         ovector = self.model.embedding.forward_o(oword)
         ivector = self.model.embedding.forward_i(iword)
         score = torch.matmul(ovector, ivector.t())
         prob = score.squeeze().sigmoid()
-        return prob.cpu().numpy()
+        return prob.data.cpu().numpy()
 
     def topk_neighbors(self, words, owords, k=10):
         """Find words in `owords` that are neighbors of `words` and are similar to `swords`.

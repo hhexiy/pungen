@@ -6,10 +6,13 @@ from fairseq import data, options, tasks, utils, tokenizer
 from fairseq.sequence_scorer import SequenceScorer
 
 import spacy
+from spacy.lang.en.stop_words import STOP_WORDS
 nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
 
 import logging
 logger = logging.getLogger('pungen')
+
+from .utils import get_lemma
 
 class LMScorer(object):
     def __init__(self, task, scorer, use_cuda):
@@ -25,8 +28,8 @@ class LMScorer(object):
         args = argparse.Namespace(data=path, path=path+'/wiki103.pt', cpu=cpu, task='language_modeling',
                 output_dictionary_size=-1, self_target=False, future_target=False, past_target=False)
         use_cuda = torch.cuda.is_available() and not cpu
-        task = tasks.setup_task(args)
         logger.info('loading language model from {}'.format(args.path))
+        task = tasks.setup_task(args)
         models, _ = utils.load_ensemble_for_inference(args.path.split(':'), task)
         d = task.target_dictionary
         scorer = SequenceScorer(models, d)
@@ -146,7 +149,14 @@ class GoodmanPunScorer(object):
     def assignment_prior(self, sent):
         return len(sent) * np.log(0.5)
 
-    def _word_likelihood(self, w, m, f):
+    def _word_likelihood_normalizer(self, w, meanings):
+        p_w = np.exp(self.unigram_logprob(w))
+        p_m = np.array([np.exp(self.unigram_logprob(m)) for m in meanings])
+        skipgram_scores = np.array([self.skipgram.score(iword=m, oword=w, lemma=True) for m in meanings])
+        z = p_w / np.dot(p_m, skipgram_scores)
+        return z
+
+    def _word_likelihood(self, w, m, f, meanings):
         """\sum_{f \in {0, 1}} p(w | f, m)
         Args:
             w (str): word
@@ -155,15 +165,20 @@ class GoodmanPunScorer(object):
         Return:
             probability
         """
+        # TODO: minimize repeated computation
+        z = self._word_likelihood_normalizer(w, meanings)
         # p(w | m, f=1) = p(w | m)
         if f == 1:
-            return self.skipgram.score(iword=m, oword=w)
+            score = self.skipgram.score(iword=m, oword=w, lemma=True)
+            #logger.debug('skipgram score for {} and {}: {}'.format(m, w, score))
+            score *= z
+            return score
         # p(w | m, f=0) = p(w)
         else:
             return np.exp(self.unigram_logprob(w))
 
-    def word_likelihood(self, w, m):
-        return np.log(self._word_likelihood(w, m, 1) + self._word_likelihood(w, m, 0))
+    def word_likelihood(self, w, m, meanings):
+        return np.log(self._word_likelihood(w, m, 1, meanings) + self._word_likelihood(w, m, 0, meanings))
 
     def meaning_prior(self, meanings):
         probs = [np.exp(self.unigram_logprob(m)) for m in meanings]
@@ -171,7 +186,7 @@ class GoodmanPunScorer(object):
         logprobs = [np.log(p / z) for p in probs]
         return logprobs
 
-    def meaning_posterior(self, m, sent, meaning_prior):
+    def meaning_posterior(self, m, sent, meaning_prior, meanings):
         """p(m | sent)
         """
         #lm_scores = self.lm.score_sents([sent])[0]
@@ -182,15 +197,20 @@ class GoodmanPunScorer(object):
         # NOTE: need to renormalize priors
         #meaning_prior = self.unigram_logprob(m)
         assignment_prior = self.assignment_prior(sent)
-        sent_likelihood = np.sum([self.word_likelihood(w, m) for w, lm_score in zip(sent, lm_scores)])
+        sent_likelihood = np.sum([self.word_likelihood(w, m, meanings) for w in sent])
 
-        return meaning_prior + assignment_prior + sent_likelihood
+        return meaning_prior + sent_likelihood #+ assignment_prior
 
     def ambiguity(self, pun_word, alter_word, sent):
         meanings = [pun_word, alter_word]
         priors = self.meaning_prior(meanings)
-        posteriors = [self.meaning_posterior(m, sent, p) for m, p in zip(meanings, priors)]
-        entropy = -1 * sum([p * np.log(p) for p in posteriors])
+        posteriors = [self.meaning_posterior(m, sent, p, meanings) for m, p in zip(meanings, priors)]
+        posteriors = [np.exp(p) for p in posteriors]
+        z = np.sum(posteriors)
+        posteriors = [np.log(p / z) for p in posteriors]
+        logger.debug('posteriors: {}'.format(posteriors))
+        entropy = -1 * sum([np.exp(logp) * logp for logp in posteriors])
+        logger.debug('entropy: {}'.format(entropy))
         return entropy
 
     def kl_div(self, p1, p2):
@@ -199,14 +219,17 @@ class GoodmanPunScorer(object):
     def distinctiveness(self, pun_word, alter_word, sent):
         # NOTE: we cannot use joint distribution
         kl_divs = []
+        meanings = [pun_word, alter_word]
         for w in sent:
-            p1 = [self._word_likelihood(w, pun_word, f) for f in (0, 1)]
-            p2 = [self._word_likelihood(w, alter_word, f) for f in (0, 1)]
+            p1 = [self._word_likelihood(w, pun_word, f, meanings) for f in (0, 1)]
+            p2 = [self._word_likelihood(w, alter_word, f, meanings) for f in (0, 1)]
             d = self.kl_div(p1, p2) + self.kl_div(p2, p1)
             kl_divs.append(d)
-        return np.mean(kl_divs)
+        return np.sum(kl_divs)
 
-    def is_content(self, tag):
+    def is_content(self, word, tag):
+        if word in STOP_WORDS:
+            return False
         if tag.startswith('NN') or \
            tag.startswith('VB') or \
            tag.startswith('JJ'):
@@ -215,11 +238,17 @@ class GoodmanPunScorer(object):
 
     def score(self, pun_sent, pun_word_id, alter_word):
         pun_word = pun_sent[pun_word_id]
-        parsed_sent = nlp(pun_sent)
-        content_words = [x.text for x in parsed_sent if self.is_content(x.tag_)]
+        pun_word = get_lemma(pun_word)
+        alter_word = get_lemma(alter_word)
+
+        parsed_sent = nlp(' '.join(pun_sent))
+        content_words = [get_lemma(x, parsed=True) for x in parsed_sent if self.is_content(x.text, x.tag_)]
+        logger.debug(content_words)
+
         ambiguity = self.ambiguity(pun_word, alter_word, content_words)
         distinctiveness = self.distinctiveness(pun_word, alter_word, content_words)
-        return ambiguity + distinctiveness
+
+        return ambiguity, distinctiveness
 
 
 if __name__ == '__main__':

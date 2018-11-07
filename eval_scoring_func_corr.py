@@ -21,7 +21,6 @@ def parse_args():
     parser.add_argument('--skipgram-embed-size', type=int, default=300, help='word embedding size in skipgram model')
     parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--human-eval')
-    parser.add_argument('--types', nargs='+')
     args = parser.parse_args()
     return args
 
@@ -31,15 +30,28 @@ def find_first_diff(s1, s2):
             return i
     return False
 
-def parse_human_eval_data(path, types):
+pair_dict = {
+        'pun': 'depun',
+        'depun': 'pun',
+        'retrieved_aw': 'retrieved_aw_alter',
+        'retrieved_aw_alter': 'retrieved_aw',
+        'retrieved_pw': 'retrieved_pw_alter',
+        'retrieved_pw_alter': 'retrieved_pw',
+        }
+
+def parse_human_eval_data(path):
     def get_pairs(fin):
         pairs = []
         for line in fin:
             ss = line.strip().split('\t')
-            text, type_, score = ss
-            if type_ not in types:
-                continue
-            pairs.append((type_, text.split(), float(score)))
+            text, type_, score = ss[0].split(), ss[1], float(ss[2])
+            if len(pairs) == 0:
+                pairs.append((type_, text, score))
+            elif type_ != pair_dict[pairs[0][0]] or len(text) != len(pairs[0][1]):
+                # NOTE: always discard the previous one
+                pairs = [(type_, text, score)]
+            else:
+                pairs.append((type_, text, score))
             if len(pairs) == 2:
                 yield pairs
                 pairs = []
@@ -47,25 +59,25 @@ def parse_human_eval_data(path, types):
     candidates = []
     with open(path, 'r') as fin:
         for pairs in get_pairs(fin):
-            t1, pun_sent, pun_score = pairs[0]
-            t2, depun_sent, depun_score = pairs[1]
-            if not len(pun_sent) == len(depun_sent):
-                print(pun_sent)
-                print(depun_sent)
-            assert len(pun_sent) == len(depun_sent)
-            id_ = find_first_diff(pun_sent, depun_sent)
+            t1, s1, f1 = pairs[0]
+            t2, s2, f2 = pairs[1]
+            if not len(s1) == len(s2):
+                print(s1)
+                print(s2)
+                raise Exception
+            id_ = find_first_diff(s1, s2)
             c1 = {
-                    'pun_sent': pun_sent,
+                    'pun_sent': s1,
                     'pun_word_id': id_,
-                    'alter_word': depun_sent[id_],
-                    'human_score': pun_score,
+                    'alter_word': s2[id_],
+                    'human_score': f1,
                     'type': t1,
                     }
             c2 = {
-                    'pun_sent': depun_sent,
+                    'pun_sent': s2,
                     'pun_word_id': id_,
-                    'alter_word': pun_sent[id_],
-                    'human_score': depun_score,
+                    'alter_word': s1[id_],
+                    'human_score': f2,
                     'type': t2,
                     }
             candidates.append(c1)
@@ -81,19 +93,29 @@ def main(args):
     scorer = PunScorer(lm, unigram_model)
     goodman_scorer = GoodmanPunScorer(lm, unigram_model, skipgram)
 
-    candidates = parse_human_eval_data(args.human_eval, args.types)
+    candidates = parse_human_eval_data(args.human_eval)
     for c in candidates:
         c['model_score'] = scorer.score(c['pun_sent'], c['pun_word_id'], c['alter_word'])
-        c['goodman_model_score'] = goodman_scorer.score(c['pun_sent'], c['pun_word_id'], c['alter_word'])
+        goodman_score = goodman_scorer.score(c['pun_sent'], c['pun_word_id'], c['alter_word'])
+        c['goodman_model_score_amb'] = goodman_score[0]
+        c['goodman_model_score_dist'] = goodman_score[1]
         #c['model_score'] = random.random()
-    print('correlation for {} sentences'.format(len(candidates)))
-    human_scores = [c['human_score'] for c in candidates]
-    model_scores = [c['model_score'] for c in candidates]
-    goodman_model_scores = [c['goodman_model_score'] for c in candidates]
-    corr = spearmanr(human_scores, model_scores)
-    print(corr)
-    corr = spearmanr(human_scores, goodman_model_scores)
-    print(corr)
+
+    for types in [('pun', 'depun'), ('pun',), None]:
+        if not types:
+            types = pair_dict.keys()
+        human_scores = [c['human_score'] for c in candidates if c['type'] in types]
+        model_scores = [c['model_score'] for c in candidates if c['type'] in types]
+        goodman_model_scores_amb = [c['goodman_model_score_amb'] for c in candidates if c['type'] in types]
+        goodman_model_scores_dist = [c['goodman_model_score_dist'] for c in candidates if c['type'] in types]
+
+        print('correlation for {} sentences of types {}'.format(len(human_scores), str(types)))
+        corr = spearmanr(human_scores, model_scores)
+        print('Our model:', corr)
+        corr = spearmanr(human_scores, goodman_model_scores_amb)
+        print('Goodman model amb:', corr)
+        corr = spearmanr(human_scores, goodman_model_scores_dist)
+        print('Goodman model dist:', corr)
 
 if __name__ == '__main__':
     args = parse_args()
