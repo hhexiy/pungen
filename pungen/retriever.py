@@ -7,10 +7,12 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from .utils import sentence_iterator, Word
 
+import logging
+logger = logging.getLogger('pungen')
 
 class Retriever(object):
     def __init__(self, doc_files, path=None, overwrite=False):
-        print('reading docs')
+        logger.info('reading retriever docs from {}'.format(' '.join(doc_files)))
         self.docs = [line.strip() for line in open(doc_files[0], 'r')]
         # TODO: in future we will not do NER abstraction, so no need to have ori_docs
         if len(doc_files) > 1:
@@ -19,13 +21,13 @@ class Retriever(object):
             self.ori_docs = self.docs
 
         if overwrite or (path is None or not os.path.exists(path)):
-            print('building retriever index')
+            logger.info('building retriever index')
             self.vectorizer = TfidfVectorizer(analyzer=str.split)
             self.tfidf_matrix = self.vectorizer.fit_transform(self.docs)
             if path is not None:
                 self.save(path)
         else:
-            print('loading retriever index')
+            logger.info('loading retriever index from {}'.format(path))
             with open(path, 'rb') as fin:
                 obj = pickle.load(fin)
                 self.vectorizer = obj['vectorizer']
@@ -63,7 +65,6 @@ class Retriever(object):
 
     def retrieve_pun_template(self, pun_word, alter_word, len_threshold=10, pos_threshold=0.5, num_cands=500, num_templates=None):
         ids = self.query(alter_word, num_cands)
-        print('retriever returned {} candidates.'.format(len(ids)))
         sents = [self.docs[id_].split() for id_ in ids]
         ori_sents = [self.ori_docs[id_].split() for id_ in ids]
         alter_sents = []
@@ -82,7 +83,10 @@ class Retriever(object):
                 pun_sents.append([x if x != alter_word else pun_word for x in sent])
                 id_ = [i for i, w in enumerate(sent) if w == alter_word][0]
                 pun_word_ids.append(id_)
-        print('{} satisfies pun constraints.'.format(count))
+        if len(pun_sents) == 0:
+            logger.info('FAIL: no retrieved sentence has length > {l} \
+                    and "{w}" occurs before {p} of the sentence.'.format(
+                        l=len_threshold, w=alter_word, p=pos_threshold))
         return alter_sents, pun_sents, pun_word_ids, alter_ori_sents
 
 

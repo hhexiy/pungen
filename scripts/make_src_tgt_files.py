@@ -3,7 +3,12 @@ import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from spacy.lang.en.stop_words import STOP_WORDS
 
-from pungen.utils import sentence_iterator, Word, get_lemma
+from pungen.utils import sentence_iterator, Word
+
+def get_lemma(word):
+    if word[Word.LEMMA] == '-PRON-':
+        return word[Word.TOKEN]
+    return word[Word.LEMMA]
 
 def parse_args():
     parser = argparse.ArgumentParser()

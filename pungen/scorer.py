@@ -2,9 +2,11 @@ import argparse
 import torch
 import numpy as np
 
-# TODO: must import options before task??
 from fairseq import data, options, tasks, utils, tokenizer
 from fairseq.sequence_scorer import SequenceScorer
+
+import logging
+logger = logging.getLogger('pungen')
 
 class LMScorer(object):
     def __init__(self, task, scorer, use_cuda):
@@ -21,7 +23,7 @@ class LMScorer(object):
                 output_dictionary_size=-1, self_target=False, future_target=False, past_target=False)
         use_cuda = torch.cuda.is_available() and not cpu
         task = tasks.setup_task(args)
-        print('| loading model(s) from {}'.format(args.path))
+        logger.info('loading language model from {}'.format(args.path))
         models, _ = utils.load_ensemble_for_inference(args.path.split(':'), task)
         d = task.target_dictionary
         scorer = SequenceScorer(models, d)
@@ -46,12 +48,21 @@ class LMScorer(object):
             for src_str in lines
         ]
         lengths = np.array([t.numel() for t in tokens])
-        itr = data.EpochBatchIterator(
-            dataset=data.MonolingualDataset([(s[:-1], s[1:]) for s in tokens], lengths, src_dict, False),
+
+        # Load dataset
+        # MonolingualDataset[i] = source, future_target, past_target
+        # all targets are effectively ignored during inference
+        dataset = data.MonolingualDataset(
+                dataset=[(s[:-1], s[1:], None) for s in tokens],
+                sizes=lengths, src_vocab=src_dict, tgt_vocab=src_dict,
+                add_eos_for_other_targets=False, shuffle=False)
+        itr = self.task.get_batch_iterator(
+            dataset=dataset,
             max_tokens=100,
             max_sentences=5,
             max_positions=max_positions,
         ).next_epoch_itr(shuffle=False)
+
         return itr
 
 class UnigramModel(object):

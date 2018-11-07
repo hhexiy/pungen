@@ -4,7 +4,6 @@ import os
 from collections import defaultdict
 import logging
 logger = logging.getLogger('pungen')
-logger.setLevel(logging.DEBUG)
 
 from .utils import ensure_exist
 

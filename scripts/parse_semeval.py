@@ -42,12 +42,13 @@ if __name__ == '__main__':
     ids = sorted(word_pairs.keys(), key=lambda x: int(x.split('_')[1]))
     puns = []
     for id_ in ids:
+        # NOTE: take pun word from the sentence directly because the one in the gold file is lemma
         pun = {
                 'id': id_,
                 'tokens': sents[id_],
-                'pun_word': word_pairs[id_]['pun'],
+                'pun_word': sents[id_][word_pairs[id_]['id']-1],
                 'alter_word': word_pairs[id_]['alter'],
-                'pun_word_id': word_pairs[id_]['id'],
+                'pun_word_id': word_pairs[id_]['id']-1,
                 }
         puns.append(pun)
 

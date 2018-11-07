@@ -88,7 +88,6 @@ retrieve:
 system=rule
 gdata=bookcorpus
 generate-pun:
-	#python src/generate_pun.py --doc-file data/$(data)/raw/sent.txt --lm-path models/wikitext --retriever-path models/retriever-1b.pkl --skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt --keywords data/manual/pun.txt
 	python generate_pun.py data \
 		--path models/$(gdata)/$(data)/$(ckpt)/checkpoint_best.pt \
 		--beam 20 --nbest 1 --unkpen 100 \
@@ -98,7 +97,7 @@ generate-pun:
 		--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt \
 		--num-topic-word 1000 \
 		--pun-words data/semeval/hetero/dev.json \
-		--output results/$(system).json 
+		--outdir results/semeval/hetero/$(system)
 
 neural-generate:
 	python src/generator.py data/$(data)/bin/data \
@@ -121,7 +120,6 @@ split-file:
 # scripts/parsed_to_tokenized.py
 
 build-retriever:
-	#python -m pungen.retriever --doc-file data/onebillion/raw/sent.tokenized.ner.txt data/onebillion/raw/sent.tokenized.txt --path models/onebillion/retriever.pkl --overwrite
 	python -m pungen.retriever --doc-file data/$(gdata)/raw/sent.tokenized.txt --path models/$(gdata)/retriever.pkl --overwrite
 
 human-corr:

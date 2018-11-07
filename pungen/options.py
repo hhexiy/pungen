@@ -18,3 +18,6 @@ def add_retriever_args(parser):
     group.add_argument('--overwrite-retriever-model', action='store_true', help='overwrite existing retriever model; rebuild from doc_file')
     group.add_argument('--num-candidates', type=int, default=500, help='number of sentences to retrieve')
     group.add_argument('--num-templates', type=int, default=10, help='number of maximum pun templates to return')
+
+def add_generic_args(parser):
+    parser.add_argument('--logfile')
