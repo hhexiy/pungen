@@ -47,7 +47,7 @@ train:
 	--encoder lstm --decoder-attention True \
 	--optimizer adagrad --lr 0.01 --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 --clip-norm 5 \
 	--max-epoch 50 --max-tokens 7000 \
-	--save-dir models/$(gdata)/$(data)/$(ckpt) --no-progress-bar --log-interval 1000 --no-epoch-checkpoints \
+	--save-dir models/$(gdata)/$(data)/$(ckpt) --no-progress-bar --log-interval 5000 --no-epoch-checkpoints \
 	#--pretrained-lm models/wikitext/wiki103.pt --mixing-weights learned --fusion-type $(fusion)
 
 preprocess-test:
@@ -116,8 +116,10 @@ split-file:
 # bash scripts/submit_preprocess.sh
 ## Join files
 # ls --color=no * | xargs cat > ...
-## Parsed to tokenized sentences
-# scripts/parsed_to_tokenized.py
+
+# Parsed to tokenized sentences
+parsed-to-tokens:
+	PYTHONPATH=. python scripts/parsed_to_tokenized.py --input data/$(gdata)/raw/sent.tokenized.parsed.txt --output data/$(gdata)/raw/sent.tokenized.txt
 
 build-retriever:
 	python -m pungen.retriever --doc-file data/$(gdata)/raw/sent.tokenized.txt --path models/$(gdata)/retriever.pkl --overwrite
@@ -145,15 +147,15 @@ split-data:
 prepare-src-tgt-data:
 	set -e;
 	for split in train valid; do \
-		PYTHONPATH=. python scripts/make_src_tgt_files.py -i data/$(gdata)/raw/$$split.txt -o data/$(gdata)/$(data)/$$split --delete-frac 0.5; \
+		PYTHONPATH=. python scripts/make_src_tgt_files.py -i data/$(gdata)/raw/$$split.txt -o data/$(gdata)/$(data)/$$split --delete-frac 0.5 --window-size 2 --random-window-size; \
 	done
 
 fairseq-preprocess:
-	python preprocess.py --source-lang src --target-lang tgt \
+	python -m pungen.preprocess --source-lang src --target-lang tgt \
 		--destdir data/$(gdata)/$(data)/bin/data --thresholdtgt 80 --thresholdsrc 80 \
 		--validpref data/$(gdata)/$(data)/valid \
 		--trainpref data/$(gdata)/$(data)/train \
-		--workers 8
+		--workers 16
 		#--srcdict data/$(gdata)/$(data)/bin/data/dict.src.txt \
 		#--tgtdict data/$(gdata)/$(data)/bin/data/dict.tgt.txt
 		#--trainpref data/$(gdata)/$(data)/train 

@@ -2,13 +2,27 @@ import os
 import logging
 import sys
 from enum import IntEnum
+import spacy
+from spacy.tokenizer import Tokenizer
+from spacy.lang.en.stop_words import STOP_WORDS
 
 Word = IntEnum('Word', [(x, i) for i, x in enumerate('TOKEN LEMMA TAG'.split())])
-Word_ner = IntEnum('Word', [(x, i) for i, x in enumerate('SURFACE TOKEN LEMMA TAG'.split())])
 
-import spacy
-nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
+whitespace_tokenizer = lambda nlp: Tokenizer(nlp.vocab, prefix_search=None, suffix_search=None, infix_finditer=None, token_match=None)
 
+EPS = 1e-12
+
+def get_spacy_nlp(tokenizer='whitespace', disable=['ner', 'parser']):
+    nlp = spacy.load('en_core_web_sm', disable=disable)
+    if tokenizer == 'whitespace':
+        nlp.tokenizer = whitespace_tokenizer(nlp)
+    elif tokenizer == 'default':
+        pass
+    else:
+        raise ValueError('unknown tokenizer {}'.format(tokenizer))
+    return nlp
+
+nlp = get_spacy_nlp()
 
 def get_lemma(word, parsed=False):
     if not parsed:

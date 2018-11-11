@@ -1,18 +1,16 @@
 import argparse
 import torch
 import numpy as np
+from collections import defaultdict
 
 from fairseq import data, options, tasks, utils, tokenizer
 from fairseq.sequence_scorer import SequenceScorer
 
-import spacy
-from spacy.lang.en.stop_words import STOP_WORDS
-nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
-
 import logging
 logger = logging.getLogger('pungen')
 
-from .utils import get_lemma
+from .utils import get_lemma, get_spacy_nlp, STOP_WORDS, EPS
+nlp = get_spacy_nlp()
 
 class LMScorer(object):
     def __init__(self, task, scorer, use_cuda):
@@ -96,9 +94,10 @@ class UnigramModel(object):
 
 
 class PunScorer(object):
-    def __init__(self, lm, um):
+    def __init__(self, lm, um, local_window_size=3):
         self.lm = lm
         self.um = um
+        self.local_window_size = local_window_size
 
     def _get_window(self, i, w):
         start = max(0, i - w)
@@ -110,32 +109,117 @@ class PunScorer(object):
         score = (np.sum(lm_scores) - np.sum(unigram_scores)) / len(sent)
         return score
 
-    # TODO: batch
-    def score(self, pun_sent, pun_word_id, alter_word, local_window_size=3):
+    def score(self, pun_sent, pun_word_id, alter_word):
         alter_sent = list(pun_sent)
         alter_sent[pun_word_id] = alter_word
-        alter_word_id = pun_word_id
-        alter_start, alter_end = self._get_window(alter_word_id, local_window_size)
-        pun_start, pun_end = self._get_window(pun_word_id, local_window_size)
-        local_pun_sent = pun_sent[pun_start:pun_end]
-        local_alter_sent = alter_sent[alter_start:alter_end]
+
+        local_start, local_end = self._get_window(pun_word_id, self.local_window_size)
+        local_pun_sent = pun_sent[local_start:local_end]
+        local_alter_sent = alter_sent[local_start:local_end]
+
         sents = [alter_sent, pun_sent, local_alter_sent, local_pun_sent]
         scores = self.lm.score_sents(sents, tokenize=lambda x: x)
+
         # surprisal = logp(alter) - logp(pun)
-        global_surprisal = np.mean(scores[0]) - np.mean(scores[1])
-        local_surprisal = np.mean(scores[2]) - np.mean(scores[3])
-        gram = self.grammaticality_score(pun_sent, scores[1])
+        global_surprisal = np.sum(scores[0]) - np.sum(scores[1])
+        local_surprisal = np.sum(scores[2]) - np.sum(scores[3])
+        grammar = self.grammaticality_score(pun_sent, scores[1])
+
+        return {'local': local_surprisal, 'global': global_surprisal, 'grammar': grammar}
+
         if not (global_surprisal > 0 and local_surprisal > 0):
-            #print(' '.join(alter_sent))
-            #print(' '.join(pun_sent))
-            #print('global:', np.mean(scores[0]), np.mean(scores[1]), global_surprisal)
-            #print(' '.join(local_alter_sent))
-            #print(' '.join(local_pun_sent))
-            #print('local:', np.mean(scores[2]), np.mean(scores[3]), local_surprisal)
             return -1000.
         else:
             r = local_surprisal / global_surprisal  # larger is better
-            return float(r + gram)
+            return float(r + grammar)
+
+
+class GoodmanScoreCaculator(object):
+    def __init__(self, lm, um, skipgram, words, meanings):
+        self.words = words
+        self.meanings = meanings
+        _words = list(set(words + meanings))
+        self.unigram_logprobs = {w: um._score(w) for w in _words}
+        self.unigram_probs = {w: np.exp(s) for w, s in self.unigram_logprobs.items()}
+        self.skipgram_probs = self.skipgram_scores(skipgram, _words, meanings)
+        self.meaning_prior = self.meaning_prior()
+
+    def skipgram_scores(self, skipgram, words, meanings):
+        n = len(words)
+        scores = defaultdict(dict)
+        # p(oword | iword)
+        _scores = skipgram.score(iwords=meanings, owords=words, lemma=True)
+        for i, w in enumerate(words):
+            for j, m in enumerate(meanings):
+                scores[w][m] = _scores[i][j]
+        return scores
+
+    def _word_likelihood_normalizer(self, w):
+        meanings = self.meanings
+        p_w = self.unigram_probs[w]
+        p_m = [self.unigram_probs[m] for m in meanings]
+        p_w_m = [self.skipgram_probs[w][m] for m in meanings]
+        z = p_w / np.dot(p_m, p_w_m)
+        return z
+
+    def _word_likelihood(self, w, m, f):
+        """\sum_{f \in {0, 1}} p(w | f, m)
+        """
+        # p(w | m, f=1) = p(w | m)
+        if f == 1:
+            z = self._word_likelihood_normalizer(w)
+            score = self.skipgram_probs[w][m] * z
+            return score
+        # p(w | m, f=0) = p(w)
+        else:
+            return self.unigram_probs[w]
+
+    def word_likelihood(self, w, m):
+        return np.log(
+                self._word_likelihood(w, m, 1) + self._word_likelihood(w, m, 0)
+               )
+
+    def meaning_prior(self):
+        probs = [self.unigram_probs[m] for m in self.meanings]
+        z = sum(probs)
+        logprobs = {m: np.log(p / z) for m, p in zip(self.meanings, probs)}
+        return logprobs
+
+    def meaning_posterior(self, m):
+        """p(m | sent)
+        """
+        sent = self.words
+        # NOTE: ignore the assignment prior which is a constant
+        sent_likelihood = np.sum([self.word_likelihood(w, m) for w in sent])
+        return self.meaning_prior[m] + sent_likelihood
+
+    def ambiguity(self):
+        meanings = self.meanings
+        sent = self.words
+        posteriors = [self.meaning_posterior(m) for m in meanings]
+        # Normalize to distribution so that entropy makes sense
+        posteriors = [np.exp(p) for p in posteriors]
+        z = np.sum(posteriors)
+        posteriors = [np.log(p / z) for p in posteriors]
+        #logger.debug('posteriors: {}'.format(posteriors))
+        entropy = -1 * sum([np.exp(logp) * logp for logp in posteriors])
+        #logger.debug('entropy: {}'.format(entropy))
+        return entropy
+
+    def kl_div(self, p1, p2):
+        return np.sum([p1_ * np.log(p1_ / p2_) for p1_, p2_ in zip(p1, p2)])
+
+    def distinctiveness(self):
+        meanings = self.meanings
+        sent = self.words
+        kl_divs = []
+        for w in sent:
+            p1 = [self._word_likelihood(w, meanings[0], f) for f in (0, 1)]
+            p2 = [self._word_likelihood(w, meanings[1], f) for f in (0, 1)]
+            d = self.kl_div(p1, p2) + self.kl_div(p2, p1)
+            kl_divs.append(d)
+        return np.sum(kl_divs)
+
 
 class GoodmanPunScorer(object):
     def __init__(self, lm, um, skipgram):
@@ -143,96 +227,11 @@ class GoodmanPunScorer(object):
         self.um = um
         self.skipgram = skipgram
 
-    def unigram_logprob(self, w):
-        return self.um._score(w)
-
-    def assignment_prior(self, sent):
-        return len(sent) * np.log(0.5)
-
-    def _word_likelihood_normalizer(self, w, meanings):
-        p_w = np.exp(self.unigram_logprob(w))
-        p_m = np.array([np.exp(self.unigram_logprob(m)) for m in meanings])
-        skipgram_scores = np.array([self.skipgram.score(iword=m, oword=w, lemma=True) for m in meanings])
-        z = p_w / np.dot(p_m, skipgram_scores)
-        return z
-
-    def _word_likelihood(self, w, m, f, meanings):
-        """\sum_{f \in {0, 1}} p(w | f, m)
-        Args:
-            w (str): word
-            f (int): {0, 1} meaning assignment
-            m (str): {pun word, alter word} meaning
-        Return:
-            probability
-        """
-        # TODO: minimize repeated computation
-        z = self._word_likelihood_normalizer(w, meanings)
-        # p(w | m, f=1) = p(w | m)
-        if f == 1:
-            score = self.skipgram.score(iword=m, oword=w, lemma=True)
-            #logger.debug('skipgram score for {} and {}: {}'.format(m, w, score))
-            score *= z
-            return score
-        # p(w | m, f=0) = p(w)
-        else:
-            return np.exp(self.unigram_logprob(w))
-
-    def word_likelihood(self, w, m, meanings):
-        return np.log(self._word_likelihood(w, m, 1, meanings) + self._word_likelihood(w, m, 0, meanings))
-
-    def meaning_prior(self, meanings):
-        probs = [np.exp(self.unigram_logprob(m)) for m in meanings]
-        z = sum(probs)
-        logprobs = [np.log(p / z) for p in probs]
-        return logprobs
-
-    def meaning_posterior(self, m, sent, meaning_prior, meanings):
-        """p(m | sent)
-        """
-        #lm_scores = self.lm.score_sents([sent])[0]
-        #assert len(lm_scores) == len(sent)
-        # NOTE: cannot use LM here because sent only contains content words
-
-        # everything is in the log space
-        # NOTE: need to renormalize priors
-        #meaning_prior = self.unigram_logprob(m)
-        assignment_prior = self.assignment_prior(sent)
-        sent_likelihood = np.sum([self.word_likelihood(w, m, meanings) for w in sent])
-
-        return meaning_prior + sent_likelihood #+ assignment_prior
-
-    def ambiguity(self, pun_word, alter_word, sent):
-        meanings = [pun_word, alter_word]
-        priors = self.meaning_prior(meanings)
-        posteriors = [self.meaning_posterior(m, sent, p, meanings) for m, p in zip(meanings, priors)]
-        posteriors = [np.exp(p) for p in posteriors]
-        z = np.sum(posteriors)
-        posteriors = [np.log(p / z) for p in posteriors]
-        logger.debug('posteriors: {}'.format(posteriors))
-        entropy = -1 * sum([np.exp(logp) * logp for logp in posteriors])
-        logger.debug('entropy: {}'.format(entropy))
-        return entropy
-
-    def kl_div(self, p1, p2):
-        return np.sum([p1_ * np.log(p1_ / p2_) for p1_, p2_ in zip(p1, p2)])
-
-    def distinctiveness(self, pun_word, alter_word, sent):
-        # NOTE: we cannot use joint distribution
-        kl_divs = []
-        meanings = [pun_word, alter_word]
-        for w in sent:
-            p1 = [self._word_likelihood(w, pun_word, f, meanings) for f in (0, 1)]
-            p2 = [self._word_likelihood(w, alter_word, f, meanings) for f in (0, 1)]
-            d = self.kl_div(p1, p2) + self.kl_div(p2, p1)
-            kl_divs.append(d)
-        return np.sum(kl_divs)
-
     def is_content(self, word, tag):
-        if word in STOP_WORDS:
-            return False
-        if tag.startswith('NN') or \
-           tag.startswith('VB') or \
-           tag.startswith('JJ'):
+        if not word in STOP_WORDS and \
+           (tag.startswith('NN') or \
+            tag.startswith('VB') or \
+            tag.startswith('JJ')):
             return True
         return False
 
@@ -240,21 +239,13 @@ class GoodmanPunScorer(object):
         pun_word = pun_sent[pun_word_id]
         pun_word = get_lemma(pun_word)
         alter_word = get_lemma(alter_word)
+        meanings = [pun_word, alter_word]
 
         parsed_sent = nlp(' '.join(pun_sent))
         content_words = [get_lemma(x, parsed=True) for x in parsed_sent if self.is_content(x.text, x.tag_)]
-        logger.debug(content_words)
 
-        ambiguity = self.ambiguity(pun_word, alter_word, content_words)
-        distinctiveness = self.distinctiveness(pun_word, alter_word, content_words)
+        calculator = GoodmanScoreCaculator(self.lm, self.um, self.skipgram, content_words, meanings)
+        ambiguity = calculator.ambiguity()
+        distinctiveness = calculator.distinctiveness()
 
-        return ambiguity, distinctiveness
-
-
-if __name__ == '__main__':
-    lm = LMScorer.load_model('models/wikitext')
-    scorer = PunScorer(lm)
-    pun_sent = 'he is going to dye'.split()
-    alter_sent = 'he is going to die'.split()
-    pun_word_id = 4
-    scorer.score(alter_sent, pun_sent, pun_word_id, local_window_size=2)
+        return {'ambiguity': ambiguity, 'distinctiveness': distinctiveness}

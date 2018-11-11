@@ -90,32 +90,25 @@ def main(args):
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
 
-    scorer = PunScorer(lm, unigram_model)
-    goodman_scorer = GoodmanPunScorer(lm, unigram_model, skipgram)
+    scorers = [PunScorer(lm, unigram_model),
+                GoodmanPunScorer(lm, unigram_model, skipgram)]
 
     candidates = parse_human_eval_data(args.human_eval)
     for c in candidates:
-        c['model_score'] = scorer.score(c['pun_sent'], c['pun_word_id'], c['alter_word'])
-        goodman_score = goodman_scorer.score(c['pun_sent'], c['pun_word_id'], c['alter_word'])
-        c['goodman_model_score_amb'] = goodman_score[0]
-        c['goodman_model_score_dist'] = goodman_score[1]
-        #c['model_score'] = random.random()
+        c['scores'] = {}
+        for scorer in scorers:
+            scores = scorer.score(c['pun_sent'], c['pun_word_id'], c['alter_word'])
+            c['scores'].update(scores)
 
-    for types in [('pun', 'depun'), ('pun',), None]:
-        if not types:
-            types = pair_dict.keys()
-        human_scores = [c['human_score'] for c in candidates if c['type'] in types]
-        model_scores = [c['model_score'] for c in candidates if c['type'] in types]
-        goodman_model_scores_amb = [c['goodman_model_score_amb'] for c in candidates if c['type'] in types]
-        goodman_model_scores_dist = [c['goodman_model_score_dist'] for c in candidates if c['type'] in types]
-
-        print('correlation for {} sentences of types {}'.format(len(human_scores), str(types)))
-        corr = spearmanr(human_scores, model_scores)
-        print('Our model: {:.2f} p={:.2f}'.format(corr.correlation, corr.pvalue))
-        corr = spearmanr(human_scores, goodman_model_scores_amb)
-        print('Goodman model amb: {:.2f} p={:.2f}'.format(corr.correlation, corr.pvalue))
-        corr = spearmanr(human_scores, goodman_model_scores_dist)
-        print('Goodman model amb: {:.2f} p={:.2f}'.format(corr.correlation, corr.pvalue))
+    all_types = pair_dict.keys()
+    for types in [('pun', 'depun'), ('pun',), all_types]:
+        _candidates = [c for c in candidates if c['type'] in types]
+        human_scores = [c['human_score'] for c in _candidates]
+        print('correlation for {} sentences of types {}'.format(len(_candidates), str(types)))
+        for metric in _candidates[0]['scores'].keys():
+            _scores = [c['scores'][metric] for c in _candidates]
+            corr = spearmanr(human_scores, _scores)
+            print('{:<15s}: {:<8.4f} p={:<8.4f}'.format(metric, corr.correlation, corr.pvalue))
 
 if __name__ == '__main__':
     args = parse_args()
