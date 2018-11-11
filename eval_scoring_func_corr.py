@@ -111,11 +111,11 @@ def main(args):
 
         print('correlation for {} sentences of types {}'.format(len(human_scores), str(types)))
         corr = spearmanr(human_scores, model_scores)
-        print('Our model:', corr)
+        print('Our model: {:.2f} p={:.2f}'.format(corr.correlation, corr.pvalue))
         corr = spearmanr(human_scores, goodman_model_scores_amb)
-        print('Goodman model amb:', corr)
+        print('Goodman model amb: {:.2f} p={:.2f}'.format(corr.correlation, corr.pvalue))
         corr = spearmanr(human_scores, goodman_model_scores_dist)
-        print('Goodman model dist:', corr)
+        print('Goodman model amb: {:.2f} p={:.2f}'.format(corr.correlation, corr.pvalue))
 
 if __name__ == '__main__':
     args = parse_args()
