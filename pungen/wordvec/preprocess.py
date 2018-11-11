@@ -38,13 +38,6 @@ class Preprocess(object):
         n = self.max_dist - self.min_dist
         return iword, [self.unk for _ in range(n - len(left))] + left + right + [self.unk for _ in range(n - len(right))]
 
-    def line_to_tokens(self, line):
-        for x in line.split():
-            ss = x.split('|')
-            if len(ss) != 4 or ss[3] in ('PUNCT', 'SPACE'):
-                continue
-            yield ss[1]
-
     def build(self, filepath=None, vocab_path=None, threshold=-1, max_vocab=-1):
         if vocab_path and os.path.exists(vocab_path):
             print("loading vocab from {}".format(vocab_path))

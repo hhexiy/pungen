@@ -1,10 +1,10 @@
 import argparse
-import spacy
 import re
 from unidecode import unidecode
 from tqdm import tqdm
 
-nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
+from pungen.utils import get_spacy_nlp
+nlp = get_spacy_nlp()
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -17,19 +17,10 @@ def parse_args():
 
 def sentence_iter(file_):
     with open(file_, 'r', errors='ignore') as fin:
-        cache = []
-        for line in fin:
-            line = re.sub('\s+', ' ', unidecode(line.strip()).strip())
-            cache.append(line)
-            if len(cache) == 200:
-                docs = nlp.pipe(cache)
-                for doc in docs:
-                    yield doc
-                cache = []
-        if cache:
-            docs = nlp.pipe(cache)
-            for doc in docs:
-                yield doc
+        cache = [re.sub('\s+', ' ', unidecode(line.strip()).strip()) for line in fin]
+        docs = nlp.pipe(cache)
+        for doc in docs:
+            yield doc
 
 def write_parsed_sentence(doc):
     all_tokens = [x for x in doc]
