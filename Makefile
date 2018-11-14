@@ -47,7 +47,7 @@ train:
 	--encoder lstm --decoder-attention True \
 	--optimizer adagrad --lr 0.01 --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 --clip-norm 5 \
 	--max-epoch 50 --max-tokens 7000 \
-	--save-dir models/$(gdata)/$(data)/$(ckpt) --no-progress-bar --log-interval 1000 --no-epoch-checkpoints \
+	--save-dir models/$(gdata)/$(data)/$(ckpt) --no-progress-bar --log-interval 5000 --no-epoch-checkpoints \
 	#--pretrained-lm models/wikitext/wiki103.pt --mixing-weights learned --fusion-type $(fusion)
 
 preprocess-test:
@@ -88,17 +88,16 @@ retrieve:
 system=rule
 gdata=bookcorpus
 generate-pun:
-	#python src/generate_pun.py --doc-file data/$(data)/raw/sent.txt --lm-path models/wikitext --retriever-path models/retriever-1b.pkl --skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt --keywords data/manual/pun.txt
 	python generate_pun.py data \
 		--path models/$(gdata)/$(data)/$(ckpt)/checkpoint_best.pt \
 		--beam 20 --nbest 1 --unkpen 100 \
 		--system $(system) \
-		--retriever-model models/$(gdata)/retriever.pkl --doc-file data/$(gdata)/raw/sent.tokenized.txt \
+		--retriever-model models/$(gdata)/retriever.pkl --doc-file data/$(gdata)/raw/sent.tokenized.txt --pos-threshold 0. \
 		--lm-path models/wikitext --word-counts-path models/wikitext/dict.txt \
 		--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt \
-		--num-topic-word 1000 \
+		--num-topic-word 500 \
 		--pun-words data/semeval/hetero/dev.json \
-		--output results/$(system).json 
+		--outdir results/semeval/hetero/$(outdir)
 
 neural-generate:
 	python src/generator.py data/$(data)/bin/data \
@@ -117,15 +116,17 @@ split-file:
 # bash scripts/submit_preprocess.sh
 ## Join files
 # ls --color=no * | xargs cat > ...
-## Parsed to tokenized sentences
-# scripts/parsed_to_tokenized.py
+
+# Parsed to tokenized sentences
+parsed-to-tokens:
+	PYTHONPATH=. python scripts/parsed_to_tokenized.py --input data/$(gdata)/raw/sent.tokenized.parsed.txt --output data/$(gdata)/raw/sent.tokenized.txt
 
 build-retriever:
-	#python -m pungen.retriever --doc-file data/onebillion/raw/sent.tokenized.ner.txt data/onebillion/raw/sent.tokenized.txt --path models/onebillion/retriever.pkl --overwrite
 	python -m pungen.retriever --doc-file data/$(gdata)/raw/sent.tokenized.txt --path models/$(gdata)/retriever.pkl --overwrite
 
 human-corr:
-	python eval_scoring_func_corr.py --human-eval data/eval/sentences_with_scores.txt --lm-path models/wikitext --word-counts-path models/wikitext/dict.txt --types pun depun
+	python eval_scoring_func_corr.py --human-eval data/eval/sentences_with_scores.txt --lm-path models/wikitext --word-counts-path models/wikitext/dict.txt \
+	--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt 
 
 prepare-pun-data:
 	PYTHONPATH=. python scripts/make_pun_src_tgt_files.py --pun-data data/semeval/$(type)/dev.json --output data/pun/ --dev-frac 0.1
@@ -146,15 +147,15 @@ split-data:
 prepare-src-tgt-data:
 	set -e;
 	for split in train valid; do \
-		PYTHONPATH=. python scripts/make_src_tgt_files.py -i data/$(gdata)/raw/$$split.txt -o data/$(gdata)/$(data)/$$split --delete-frac 0.5; \
+		PYTHONPATH=. python scripts/make_src_tgt_files.py -i data/$(gdata)/raw/$$split.txt -o data/$(gdata)/$(data)/$$split --delete-frac 0.5 --window-size 2 --random-window-size; \
 	done
 
 fairseq-preprocess:
-	python preprocess.py --source-lang src --target-lang tgt \
+	python -m pungen.preprocess --source-lang src --target-lang tgt \
 		--destdir data/$(gdata)/$(data)/bin/data --thresholdtgt 80 --thresholdsrc 80 \
 		--validpref data/$(gdata)/$(data)/valid \
 		--trainpref data/$(gdata)/$(data)/train \
-		--workers 8
+		--workers 16
 		#--srcdict data/$(gdata)/$(data)/bin/data/dict.src.txt \
 		#--tgtdict data/$(gdata)/$(data)/bin/data/dict.tgt.txt
 		#--trainpref data/$(gdata)/$(data)/train 

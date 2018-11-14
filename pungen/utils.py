@@ -1,11 +1,42 @@
 import os
 import logging
-import inspect
 import sys
 from enum import IntEnum
+import spacy
+from spacy.tokenizer import Tokenizer
+from spacy.lang.en.stop_words import STOP_WORDS
 
 Word = IntEnum('Word', [(x, i) for i, x in enumerate('TOKEN LEMMA TAG'.split())])
-Word_ner = IntEnum('Word', [(x, i) for i, x in enumerate('SURFACE TOKEN LEMMA TAG'.split())])
+
+whitespace_tokenizer = lambda nlp: Tokenizer(nlp.vocab, prefix_search=None, suffix_search=None, infix_finditer=None, token_match=None)
+
+EPS = 1e-12
+
+def get_spacy_nlp(tokenizer='whitespace', disable=['ner', 'parser']):
+    nlp = spacy.load('en_core_web_sm', disable=disable)
+    if tokenizer == 'whitespace':
+        nlp.tokenizer = whitespace_tokenizer(nlp)
+    elif tokenizer == 'default':
+        pass
+    else:
+        raise ValueError('unknown tokenizer {}'.format(tokenizer))
+    return nlp
+
+nlp = get_spacy_nlp()
+
+def get_lemma(word, parsed=False):
+    if not parsed:
+        _word = nlp(word)[0]
+    else:
+        _word = word
+
+    if _word.lemma_ != '-PRON-':
+        lemma = _word.lemma_
+    else:
+        lemma = word
+
+    return lemma
+
 
 def sentence_iterator(file_, n=-1, ner=False):
     with open(file_, 'r') as fin:
@@ -21,11 +52,6 @@ def sentence_iterator(file_, n=-1, ner=False):
                     words.append(tags)
             yield words
 
-def get_lemma(word, props):
-    if word[props.LEMMA] == '-PRON-':
-        return word[props.TOKEN]
-    return word[props.LEMMA]
-
 def ensure_exist(path, is_dir=False):
     if not is_dir:
         dir_ = os.path.dirname(path)
@@ -34,42 +60,35 @@ def ensure_exist(path, is_dir=False):
     if not os.path.exists(dir_):
         os.makedirs(dir_)
 
-# Copied from https://github.com/dmlc/gluon-nlp/blob/master/scripts/machine_translation/utils.py
+# Adapted from https://github.com/dmlc/gluon-nlp/blob/master/scripts/machine_translation/utils.py
 def logging_config(filename=None,
                    level=logging.DEBUG,
                    console_level=logging.INFO,
                    no_console=False):
-    """ Config the logging.
+    logger = logging.getLogger('pungen')
 
-    Parameters
-    ----------
-    level : int
-    console_level
-    no_console: bool
-        Whether to disable the console log
-    """
     # Remove all the current handlers
-    for handler in logging.root.handlers:
-        logging.root.removeHandler(handler)
-    logging.root.handlers = []
+    for handler in logger.handlers:
+        logger.removeHandler(handler)
+    logger.handlers = []
 
-    logging.root.setLevel(level)
+    logger.setLevel(level)
     formatter = logging.Formatter('%(filename)s %(funcName)s: %(message)s')
 
     if filename is not None:
         ensure_exist(filename)
         logpath = filename
         print('All Logs will be saved to {}'.format(logpath))
-        logfile = logging.FileHandler(logpath)
+        logfile = logging.FileHandler(logpath, mode='w')
         logfile.setLevel(level)
         logfile.setFormatter(formatter)
-        logging.root.addHandler(logfile)
+        logger.addHandler(logfile)
 
     if not no_console:
         # Initialze the console logging
         logconsole = logging.StreamHandler()
         logconsole.setLevel(console_level)
         logconsole.setFormatter(formatter)
-        logging.root.addHandler(logconsole)
+        logger.addHandler(logconsole)
 
 

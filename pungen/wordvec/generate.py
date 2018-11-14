@@ -1,18 +1,18 @@
 import argparse
 import os
 import pickle
-import logging
 from nltk.corpus import wordnet as wn
-
-import spacy
-nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser'])
 
 import torch
 from torch import LongTensor as LT
 from torch import FloatTensor as FT
 from fairseq.data.dictionary import Dictionary
 
+from pungen.utils import get_lemma
 from .model import Word2Vec, SGNS
+
+import logging
+logger = logging.getLogger('pungen')
 
 class SkipGram(object):
     def __init__(self, model, vocab, use_cuda):
@@ -20,6 +20,7 @@ class SkipGram(object):
         self.vocab = vocab
         if use_cuda:
             self.model.cuda()
+        self.model.eval()
 
     @classmethod
     def load_model(cls, vocab_path, model_path, embedding_size=300, cpu=False):
@@ -27,33 +28,44 @@ class SkipGram(object):
         vocab_size = len(d)
         model = Word2Vec(vocab_size=vocab_size, embedding_size=embedding_size)
         sgns = SGNS(embedding=model, vocab_size=vocab_size, n_negs=1, weights=None)
-        logging.info('loading skipgram model')
+        logger.info('loading skipgram model')
         sgns.load_state_dict(torch.load(model_path))
         sgns.eval()
         use_cuda = torch.cuda.is_available() and not cpu
         return cls(sgns, d, use_cuda)
 
-    # TODO: add freq constraint
-    def predict_neighbors(self, word, k=20, cands=None):
-        # take lemma
-        logging.debug('word={}'.format(word))
-        word_ = nlp(word)[0]
-        if word_.lemma_ != '-PRON-':
-            word = word_.lemma_
-        logging.debug('lemma={}'.format(word))
+    def predict_neighbors(self, word, k=20, masked_words=None):
+        # take lemma because skipgram is trained on lemmas
+        lemma = get_lemma(word)
+        logger.debug('word={}, lemma={}'.format(word, lemma))
+        word = lemma
 
-        if cands:
-            owords = [self.vocab.index(w) for w in cands]
-        else:
-            owords = range(len(self.vocab))
+        owords = range(len(self.vocab))
 
         # NOTE: 0 is <Lua heritage> in fairseq.data.dictionary
         masked_inds = [self.vocab.index(word), self.vocab.unk(), self.vocab.eos(), 0]
+        if masked_words:
+            masked_inds += [self.vocab.index(w) for w in masked_words]
         owords = [w for w in owords if not w in masked_inds and self.vocab.count[w] > 100]
         neighbors = self.topk_neighbors([word], owords, k=k)
 
         return neighbors
 
+    def score(self, iwords, owords, lemma=False):
+        """p(oword | iword)
+        """
+        if not lemma:
+            iwords = [get_lemma(w) for w in iwords]
+            owords = [get_lemma(w) for w in owords]
+        iwords = [self.vocab.index(w) for w in iwords]
+        owords = [self.vocab.index(w) for w in owords]
+        ovectors = self.model.embedding.forward_o(owords)
+        ivectors = self.model.embedding.forward_i(iwords)
+        scores = torch.matmul(ovectors, ivectors.t())
+        probs = scores.squeeze().sigmoid()
+        return probs.data.cpu().numpy()
+
+    # TODO: use self.score()
     def topk_neighbors(self, words, owords, k=10):
         """Find words in `owords` that are neighbors of `words` and are similar to `swords`.
         """
@@ -61,7 +73,6 @@ class SkipGram(object):
         iwords = [vocab.index(word) for word in words]
         for iword, w in zip(iwords, words):
             if iword == vocab.unk():
-                logging.info('unknown input word: {}'.format(w))
                 return []
 
         ovectors = self.model.embedding.forward_o(owords)
@@ -130,13 +141,13 @@ def main(args):
     for i, example in enumerate(puns):
         if i == args.n:
             break
-        alter_word, pun_word = example['pun_word'], example['alter_word']
+        pun_word, alter_word = example['pun_word'], example['alter_word']
         alter_topic_words = skipgram.predict_neighbors(alter_word, k=args.k)
         pun_topic_words = skipgram.predict_neighbors(pun_word, k=args.k)
-        logging.debug(alter_word)
-        logging.debug(alter_topic_words)
-        logging.debug(pun_word)
-        logging.debug(pun_topic_words)
+        logger.debug(alter_word)
+        logger.debug(alter_topic_words)
+        logger.debug(pun_word)
+        logger.debug(pun_topic_words)
         r = {
                 'id': example['id'],
                 'pun_word': pun_word,
