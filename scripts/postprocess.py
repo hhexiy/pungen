@@ -8,8 +8,7 @@ from sklearn.metrics import cohen_kappa_score
 from scipy.stats import spearmanr, pearsonr
 
 #names = {'pun':0, 'depun':1, 'retrieved_pw':2, 'retrieved_pw_alter':3, 'retrieved_aw':4, 'retrieved_aw_alter':5}
-names = {'pun':0, 'depun':1, 'retrieved_pw':2, 'retrieved_aw':3}
-def load_eval(infile):
+def load_analysis_eval(infile):
     sentence_dict = dict()
     turker_dict = dict()
     line_num = 0
@@ -19,7 +18,6 @@ def load_eval(infile):
             line_num += 1
             if line_num == 1:
                 header_dict = read_header(line)
-                header_length = len(line)
                 continue
             elems = line
             for i in range(1, 11):
@@ -41,6 +39,114 @@ def load_eval(infile):
                     turker_dict[turker_id].append((sentence_info, answer))
     return sentence_dict, turker_dict
 
+def load_generation_eval(infile, num_methods):
+    sentence_dict = dict()
+    pun_dict = dict()
+    turker_dict = dict()
+    line_num = 0
+    counter = 0
+    with open(infile) as csvfile:
+        inf = csv.reader(csvfile, delimiter=',', quotechar='\"')
+        for line in inf:
+            line_num += 1
+            if line_num == 1:
+                header_dict = read_header(line)
+                print (header_dict)
+                continue
+            elems = line
+            turker_id = elems[header_dict['WorkerId']] 
+            for i in range(1, 11):
+                key = 'Input.Pun_alter_'+str(i)
+                assert key in header_dict, key
+                pun_alter_key = elems[header_dict[key]]
+                if pun_alter_key not in pun_dict:
+                    pun_dict[pun_alter_key] = [{} for i in range(num_methods)]
+                else:
+                    print(pun_alter_key, "has already be in the corpora!")
+                key = 'Input.order_info_'+str(i) 
+                assert key in header_dict, key
+                order_info = elems[header_dict[key]].strip().split('-')
+                temp_results = [None for od in order_info]
+                for j in range(num_methods):
+                    key = 'Answer.Sentence'+str(i)+'_'+str(j+1)
+                    assert key in header_dict, key
+                    answer = int(elems[header_dict[key]])
+                    key = 'Input.Sentence'+str(i)+'_'+str(j+1) 
+                    assert key in header_dict, key
+                    sentence = elems[header_dict[key]]
+                    temp_results[int(order_info[j])] = (sentence, answer)
+                for j in range(num_methods):
+                    sentence, score = temp_results[j]
+                    if sentence not in pun_dict[pun_alter_key][j]:
+                        pun_dict[pun_alter_key][j][sentence] = []
+                    if j != num_methods - 1:
+                        try:
+                            assert len(pun_dict[pun_alter_key][j][sentence]) < 5
+                        except:
+                            print('loading data! Abnormal data:', j, temp_results[j], pun_dict[pun_alter_key][j][sentence], counter)
+                            #sentence = '_'.join([sentence, str(j)])
+                            counter += 1
+                            '''if sentence not in pun_dict[pun_alter_key][j]:
+                                pun_dict[pun_alter_key][j][sentence] = []
+                            else:
+                                assert len(pun_dict[pun_alter_key][j][sentence]) < 5
+                            '''
+                    pun_dict[pun_alter_key][j][sentence].append(score)
+                    if sentence not in sentence_dict:
+                        sentence_dict[sentence] = [sentence]
+                    sentence_dict[sentence].append(score)
+                    if turker_id not in turker_dict:
+                        turker_dict[turker_id] = []
+                    turker_dict[turker_id].append((sentence, score))
+    return sentence_dict, pun_dict, turker_dict
+
+def compute_generated_pun_results(pun_dict, sentence_dict, names):
+    print ('total pun numbers:', len(pun_dict))
+    print ('total annotation numbers:', len(sentence_dict))
+    scores = [[] for i in range(len(names))]
+    counts = [0] * len(names)
+    annotations = []
+    sentences_with_scores = []
+    for key, value in pun_dict.items():
+        assert len(value) == 6, len(value)
+        #temp_scores = [[] for i in range(len(names))]
+        for ii, sent_dic in enumerate(value):
+            temp_scores = []
+            #print(len(sent_dic))
+            for k, v in sent_dic.items():
+                assert k in sentence_dict, k
+                if ii < len(names) -1 and len(sentence_dict[k]) > 6:
+                    print('abnormal sentences!!', ii, sentence_dict[k], v)
+                    '''try:
+                        assert len(v) % 5 == 0
+                    except:
+                        print('abnormal length!!!', ii, k, v)
+                    score = np.mean(v)
+                    '''
+                score = np.mean(sentence_dict[k][1:])
+                temp_scores.append(score)
+            # this one can be changed to different strategies.
+            scores[ii].append(np.max(temp_scores))
+            counts[ii] += 1 
+        #annotations.append(value)
+        #sentences_with_scores.append((value[0], '_'.join(key.split('_')[:-1]), np.mean(value[1:])))
+    #annotations = np.array(annotations)
+    #print(annotations.shape)
+    '''kappa_array, spearman_array = [], []
+    for i in range(annotations.shape[1]):
+        for j in range(i+1, annotations.shape[1]):
+            kappa_array.append(cohen_kappa_score(annotations[:,i], annotations[:, j]))
+            spearman_array.append(spearmanr(annotations[:,i], annotations[:, j]))
+    sorted_sents = sorted(sentences_with_scores, key=itemgetter(0))
+    for item in sorted_sents:
+        print('\t'.join(list(map(str, item))))
+    '''
+    print([len(sc) for sc in scores])
+    for i in range(len(scores)-1):
+        print(i, [(sum(np.array(sc)<np.array(scores[i])), sum(np.array(sc)>np.array(scores[i]))) for sc in scores[i+1:]])
+    print([np.mean(sc) for sc in scores])
+    #return np.array(scores) / np.array(counts), np.mean(kappa_array), np.mean(spearman_array)
+
 def filter_bad_turker(turker_dict, sentence_dict):
     print ('total turker numbers:', len(turker_dict))
     for tk, v in turker_dict.items():
@@ -57,7 +163,7 @@ def filter_bad_turker(turker_dict, sentence_dict):
                 continue
             correlations.append(0 if np.isnan(corr) else corr)
         #if sorted(correlations)[-2] < 0.4:
-        if np.max(correlations) < 0.4:
+        if np.max(correlations) < 0.3:
             print ('turker', tk, 'is a bad turker with agreement', correlations, tary, aary)
             for i, (sid, a) in enumerate(v):
                 annos = sentence_dict[sid][1:]
@@ -114,7 +220,6 @@ def load_data(infile):
             line_num += 1
             if line_num == 1:
                 header_dict = read_header(line)
-                header_length = len(line)
                 continue
             elems = line
             for i in range(1, 11):
@@ -155,7 +260,6 @@ def load_data_computer_generated(infile):
             line_num += 1
             if line_num == 1:
                 header_dict = read_header(line)
-                header_length = len(line)
                 continue
             elems = line
             for i in range(1, 11):
@@ -219,6 +323,17 @@ def parse_keywords_eval_hit(infile):
                     print (line[header_dict['story'+str(i)+'_2']])
 
 if __name__ == '__main__':
-    sentence_dict, turker_dict = load_eval(sys.argv[1])
+    infile = sys.argv[1]
+    num_methods = 6
+    sentence_dict, pun_dict, turker_dict = load_generation_eval(infile, num_methods)
+    print(len(sentence_dict))
+    print(len(pun_dict))
+    print(len(turker_dict))
+    filter_bad_turker(turker_dict, sentence_dict)
+    names = {'pku':0, 'retrieve':1, 'retrieve_repl':2, 'rule':3, 'neural':4, 'gold':5}
+    compute_generated_pun_results(pun_dict, sentence_dict, names) 
+    exit(0)
+    names = {'pun':0, 'depun':1, 'retrieved_pw':2, 'retrieved_aw':3}
+    sentence_dict, turker_dict = load_analysis_eval(sys.argv[1])
     filter_bad_turker(turker_dict, sentence_dict)
     print (compute_results(sentence_dict))
