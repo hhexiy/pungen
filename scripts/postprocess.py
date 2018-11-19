@@ -39,7 +39,7 @@ def load_analysis_eval(infile):
                     turker_dict[turker_id].append((sentence_info, answer))
     return sentence_dict, turker_dict
 
-def load_generation_eval(infile, num_methods):
+def load_generation_eval(infile, num_methods, group_per_page):
     sentence_dict = dict()
     pun_dict = dict()
     turker_dict = dict()
@@ -55,7 +55,7 @@ def load_generation_eval(infile, num_methods):
                 continue
             elems = line
             turker_id = elems[header_dict['WorkerId']] 
-            for i in range(1, 11):
+            for i in range(1, 1+group_per_page):
                 key = 'Input.Pun_alter_'+str(i)
                 assert key in header_dict, key
                 pun_alter_key = elems[header_dict[key]]
@@ -81,7 +81,7 @@ def load_generation_eval(infile, num_methods):
                         pun_dict[pun_alter_key][j][sentence] = []
                     if j != num_methods - 1:
                         try:
-                            assert len(pun_dict[pun_alter_key][j][sentence]) < 5
+                            assert len(pun_dict[pun_alter_key][j][sentence]) < 3
                         except:
                             print('loading data! Abnormal data:', j, temp_results[j], pun_dict[pun_alter_key][j][sentence], counter)
                             #sentence = '_'.join([sentence, str(j)])
@@ -89,8 +89,7 @@ def load_generation_eval(infile, num_methods):
                             '''if sentence not in pun_dict[pun_alter_key][j]:
                                 pun_dict[pun_alter_key][j][sentence] = []
                             else:
-                                assert len(pun_dict[pun_alter_key][j][sentence]) < 5
-                            '''
+                                assert len(pun_dict[pun_alter_key][j][sentence]) < 53                            '''
                     pun_dict[pun_alter_key][j][sentence].append(score)
                     if sentence not in sentence_dict:
                         sentence_dict[sentence] = [sentence]
@@ -163,7 +162,7 @@ def filter_bad_turker(turker_dict, sentence_dict):
                 continue
             correlations.append(0 if np.isnan(corr) else corr)
         #if sorted(correlations)[-2] < 0.4:
-        if np.max(correlations) < 0.3:
+        if np.max(correlations) < 0.4:
             print ('turker', tk, 'is a bad turker with agreement', correlations, tary, aary)
             for i, (sid, a) in enumerate(v):
                 annos = sentence_dict[sid][1:]
@@ -325,7 +324,8 @@ def parse_keywords_eval_hit(infile):
 if __name__ == '__main__':
     infile = sys.argv[1]
     num_methods = 6
-    sentence_dict, pun_dict, turker_dict = load_generation_eval(infile, num_methods)
+    group_per_page = 2
+    sentence_dict, pun_dict, turker_dict = load_generation_eval(infile, num_methods, group_per_page)
     print(len(sentence_dict))
     print(len(pun_dict))
     print(len(turker_dict))
