@@ -2,10 +2,32 @@
 
 import json
 import random
+import argparse
 import sys, re
 from random import shuffle
 from wordfreq import word_frequency
 from mosestokenizer import *
+
+
+def compose_collaborative_pun_hit(data_dict, outfile, top_k=5):
+    with open(outfile, 'w') as outf:
+        header = ['Pun_alter']
+        for i in range(top_k):
+            header.append('sentence_'+str(i+1))
+        assert len(header) == top_k + 1
+        outf.write(','.join(header)+'\n')
+        for key, results in data_dict.items():
+            if word_frequency(key[0], 'en') < 1e-6 or word_frequency(key[1], 'en') < 1e-6 :
+                print('skip the keyword pair:', ' '.join(key))
+                continue
+            contents = []
+            contents.append('-'.join(key))
+            if type(results) is tuple:
+                results = results[0]
+            for res in results[:top_k]:
+                contents.append(res)
+            #print(type(contents), contents)
+            outf.write(','.join(contents)+'\n')
 
 def compose_funniness_anno_hit(names, outfile, *datasets):
     #names = ['pun', 'depun', 'retrieved_pw', 'retrieved_aw']
@@ -46,7 +68,7 @@ def compose_eval_hit(sentences, pun_word, outfile, group_per_page=2):
         assert len(header) == 9*group_per_page, len(header)
         outf.write(','.join(header)+'\n')
         zipped_sentences = list(zip(*sentences))
-        print(len(sentences), len(zipped_sentences))
+        #print(len(sentences), len(zipped_sentences))
         count = 0
         for i in instance_order:
             sents = zipped_sentences[i]
@@ -62,7 +84,7 @@ def compose_eval_hit(sentences, pun_word, outfile, group_per_page=2):
             else:
                 outf.write(',')
             count += 1
-            print(count)
+            #print(count)
 
 
 def load_sentences(infile):
@@ -74,6 +96,7 @@ def load_sentences(infile):
 
 
 def load_json(infile, top_k=1):
+    # data_dict: key=(pun_word, alter_word), value=(top_k_results, gold_sentence)
     data_dict = dict()
     with open(infile) as inf, MosesDetokenizer('en') as detokenize:
         data = json.load(inf)
@@ -97,6 +120,7 @@ def load_json(infile, top_k=1):
 
 
 def load_pku(kw_file, sent_file, every=100, top_k=1):
+    # data_dict: key=(pun_word, alter_word), value=top_k_results
     data_dict = dict()
     key_array = load_keyword(kw_file)
     print('key array size:', len(key_array))
@@ -168,22 +192,40 @@ def combine_results(pku_dict, top_k=1, *other_dicts):
         pun_words.extend([key] * len(val))
         sentences[0].extend(val)
         sentences[-1].extend(['"' + '\''.join(reference.split('"'))+'"'] * len(val))
-        print(len(pun_words), [len(sents) for sents in sentences])
+        #print(len(pun_words), [len(sents) for sents in sentences])
     print(len(pun_words), len(sentences), [len(sent) for sent in sentences])
     return pun_words, sentences
 
 
 if __name__ == '__main__':
-    retrieve = load_json(sys.argv[1])
-    retrieve_repl = load_json(sys.argv[2])
-    rule = load_json(sys.argv[3])
-    neural = load_json(sys.argv[4])
-    pku = load_pku(sys.argv[5], sys.argv[6])
-    pun_words, sentences = combine_results(pku, 1, retrieve, retrieve_repl, rule, neural)
-    outfile = sys.argv[7]
-    compose_eval_hit(sentences, pun_words, outfile)
-    exit(0)
-    sentences_array = [load_sentences(fname) for fname in sys.argv[1:-1]] 
-    # the actual order: incremental, title-to-text, title-keywords-text, human_story
-    names = ['pun', 'depun', 'retrieved_pw', 'retrieved_pw_alter', 'retrieved_aw', 'retrieved_aw_alter']
-    compose_funniness_anno_hit(names, sys.argv[-1], *sentences_array) 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--task', default='compose_eval_hit', help='which hit to compose')
+    parser.add_argument('--files', nargs='+', help='')
+    parser.add_argument('--top-k', default=1, type=int, help='get top k from each method')
+    parser.add_argument('--keywords', help='file containing keywords')
+    parser.add_argument('--outfile', default='test.csv', help='output file for the retrieved sentences')
+    args = parser.parse_args()
+    func = eval(args.task)
+
+    if args.task == 'compose_collaborative_pun_hit':
+        filename = args.files[0]
+        if 'highlight' in filename:
+            data_dict = load_pku(args.keywords, filename, top_k=args.top_k)
+        else:
+            data_dict = load_json(filename, top_k=args.top_k)
+        func(data_dict, args.outfile, args.top_k)
+
+    if args.task == 'compose_eval_hit':
+        retrieve = load_json(args.files[0], top_k=args.top_k)
+        retrieve_repl = load_json(args.files[1], top_k=args.top_k)
+        rule = load_json(args.files[2], top_k=args.top_k)
+        neural = load_json(args.files[3], top_k=args.top_k)
+        pku = load_pku(args.keywords, args.files[4], top_k=args.top_k)
+        pun_words, sentences = combine_results(pku, args.top_k, retrieve, retrieve_repl, rule, neural)
+        func(sentences, pun_words, args.outfile)
+    
+    if args.task == 'compose_funniness_anno_hit':
+        sentences_array = [load_sentences(fname) for fname in args.files] 
+        # the actual order: incremental, title-to-text, title-keywords-text, human_story
+        names = ['pun', 'depun', 'retrieved_pw', 'retrieved_pw_alter', 'retrieved_aw', 'retrieved_aw_alter']
+        func(names, args.outfile, *sentences_array) 
