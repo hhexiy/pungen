@@ -33,7 +33,7 @@ def get_lemma(word, parsed=False):
     if _word.lemma_ != '-PRON-':
         lemma = _word.lemma_
     else:
-        lemma = word
+        lemma = _word.text
 
     return lemma
 

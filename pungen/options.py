@@ -3,6 +3,7 @@ def add_scorer_args(parser):
     group.add_argument('--lm-path', help='pretrained LM for scoring')
     group.add_argument('--word-counts-path', help='vocab word counts for the unigram model')
     group.add_argument('--oov-prob', type=float, default=0.03, help='oov probability for smoothing')
+    group.add_argument('--scorer', choices=['random', 'surprisal', 'goodman'], default='random', help='type of scorer')
 
 def add_editor_args(parser):
     group = parser.add_argument_group('Editing')
@@ -22,4 +23,5 @@ def add_retriever_args(parser):
     group.add_argument('--pos-threshold', type=float, default=0., help='pun word must occur after the thresholding position [0, 1] in a sentence')
 
 def add_generic_args(parser):
-    parser.add_argument('--logfile')
+    parser.add_argument('--outdir', default='./results')
+    parser.add_argument('--cpu', action='store_true')

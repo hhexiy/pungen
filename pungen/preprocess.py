@@ -16,10 +16,9 @@ import os
 import shutil
 
 
-from fairseq.data import indexed_dataset, dictionary
+from fairseq.data import indexed_dataset, EditDictionary as Dictionary
 from fairseq.tokenizer import Tokenizer, tokenize_line
 from multiprocessing import Pool, Manager, Process
-
 
 
 def get_parser():
@@ -55,7 +54,7 @@ def main(args):
     target = not args.only_source
 
     def build_dictionary(filenames):
-        d = dictionary.Dictionary()
+        d = Dictionary()
         for filename in filenames:
             Tokenizer.add_file_to_dictionary(filename, d, tokenize_line, args.workers)
         return d
@@ -85,13 +84,13 @@ def main(args):
         tgt_dict = src_dict
     else:
         if args.srcdict:
-            src_dict = dictionary.Dictionary.load(args.srcdict)
+            src_dict = Dictionary.load(args.srcdict)
         else:
             assert args.trainpref, "--trainpref must be set if --srcdict is not specified"
             src_dict = build_dictionary([train_path(args.source_lang)])
         if target:
             if args.tgtdict:
-                tgt_dict = dictionary.Dictionary.load(args.tgtdict)
+                tgt_dict = Dictionary.load(args.tgtdict)
             else:
                 assert args.trainpref, "--trainpref must be set if --tgtdict is not specified"
                 tgt_dict = build_dictionary([train_path(args.target_lang)])
@@ -112,7 +111,7 @@ def main(args):
         tgt_dict.save(dict_path(args.target_lang))
 
     def make_binary_dataset(input_prefix, output_prefix, lang, num_workers):
-        dict = dictionary.Dictionary.load(dict_path(lang))
+        dict = Dictionary.load(dict_path(lang))
         print('| [{}] Dictionary: {} types'.format(lang, len(dict) - 1))
         n_seq_tok = [0, 0]
         replaced = Counter()
@@ -189,8 +188,8 @@ def main(args):
         assert args.trainpref, "--trainpref must be set if --alignfile is specified"
         src_file_name = train_path(args.source_lang)
         tgt_file_name = train_path(args.target_lang)
-        src_dict = dictionary.Dictionary.load(dict_path(args.source_lang))
-        tgt_dict = dictionary.Dictionary.load(dict_path(args.target_lang))
+        src_dict = Dictionary.load(dict_path(args.source_lang))
+        tgt_dict = Dictionary.load(dict_path(args.target_lang))
         freq_map = {}
         with open(args.alignfile, 'r') as align_file:
             with open(src_file_name, 'r') as src_file:
