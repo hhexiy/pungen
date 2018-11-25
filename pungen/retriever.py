@@ -85,19 +85,8 @@ class Retriever(object):
         ids = np.argsort(scores)[-k:][::-1]
         return ids
 
-    #def check_pos(self, sent, word, pos_threshold):
-    #    pos = [i for i, w in enumerate(sent) if w == word]
-    #    if len(pos) == 0:
-    #        return False
-    #    p = max(pos)
-    #    if p < min(int(len(sent) * pos_threshold), len(sent) - 1):
-    #        return False
-    #    return True
-
-    #def check_len(self, sent, len_threshold):
-    #    if len(sent) < len_threshold:
-    #        return False
-    #    return True
+    def valid_template(self, template):
+        return template.num_key == 1
 
     def retrieve_pun_template(self, alter_word, len_threshold=10, pos_threshold=0.5, num_cands=500, num_templates=None):
         ids = self.query(alter_word, num_cands)
@@ -107,7 +96,10 @@ class Retriever(object):
             logger.info('FAIL: no retrieved sentence contains the keyword {}.'.format(alter_word))
             return []
 
-        templates = sorted(templates, reverse=True)[:num_templates]
+        valid_templates = [t for t in templates if self.valid_template(t)]
+        if len(valid_templates) == 0:
+            valid_tempaltes = templates
+        templates = sorted(valid_tempaltes, reverse=True)[:num_templates]
         return templates
 
 
