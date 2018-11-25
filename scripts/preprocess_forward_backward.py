@@ -7,8 +7,15 @@ def load_keywords(keyset, infile):
             keyset.add(line.strip())
     return keyset
 
-def get_vocab(infile):
-    vocab_dict = dict()
+def load_vocab(infile, threshold):
+    vocab_dict=dict()
+    with open(infile) as inf:
+        for line in inf:
+            elems = line.strip()
+            vocab_dict[elems] = threshold
+    return vocab_dict
+
+def get_vocab(infile, vocab_dict=dict()):
     with open(infile) as inf:
         for line in inf:
             elems = line.strip().split()
@@ -20,14 +27,16 @@ def get_vocab(infile):
 
 def process_file_fb(infile, keyset, vocab, max_sample=3, threshold=10):
     dirname = os.path.dirname(infile)
+    basename = os.path.basename(infile)
+    print('base name:', basename)
     if not os.path.exists(os.path.join(dirname, '1backward')):
         os.mkdir(os.path.join(dirname, '1backward'))
     if not os.path.exists(os.path.join(dirname, '2forward')):
         os.mkdir(os.path.join(dirname, '2forward'))
-    with open(infile) as inf, open(os.path.join(dirname, '1backward', 'train.in'), 'w') as bsout, \
-            open(os.path.join(dirname, '1backward', 'train.out'), 'w') as btout, \
-            open(os.path.join(dirname, '2forward', 'train.in'), 'w') as fsout, \
-            open(os.path.join(dirname, '2forward', 'train.out'), 'w') as ftout :
+    with open(infile) as inf, open(os.path.join(dirname, '1backward', basename+'.in'), 'w') as bsout, \
+            open(os.path.join(dirname, '1backward', basename+'.out'), 'w') as btout, \
+            open(os.path.join(dirname, '2forward', basename+'.in'), 'w') as fsout, \
+            open(os.path.join(dirname, '2forward', basename+'.out'), 'w') as ftout :
         for line in inf:
             elems = line.strip().split()
             kwset = set(elems) & keyset
@@ -41,7 +50,7 @@ def process_file_fb(infile, keyset, vocab, max_sample=3, threshold=10):
             write_files(elems, idxs, vocab, bsout, btout, fsout, ftout, threshold)
     
 def write_files(sentence, idxs, vocab, bsout, btout, fsout, ftout, threshold=10):
-    conv_sent = [word if vocab[word] >= threshold else '<unk>' for word in sentence]
+    conv_sent = [word if (word in vocab and vocab[word] >= threshold) else '<unk>' for word in sentence]
     for idx in idxs:
         bsout.write(conv_sent[idx] + '\n')
         btout.write(' '.join(conv_sent[idx-1::-1]) + '\n')
@@ -69,8 +78,13 @@ if __name__ == '__main__':
     print('keyword size:', len(keyword_set))
     load_keywords(keyword_set, sys.argv[3])
     print('keyword size:', len(keyword_set))
-    vocab_dict = get_vocab(infile) 
-    print('vocab size:', len(vocab_dict))
     threshold=int(sys.argv[4])
-    print_vocab('vocab.in', vocab_dict, threshold)
+    vocab_file = sys.argv[5]
+    if os.path.exists(vocab_file):
+        print('loading vocab from:', vocab_file)
+        vocab_dict = load_vocab(vocab_file, threshold)
+    else:
+        vocab_dict = get_vocab(infile) 
+        print_vocab(vocab_file, vocab_dict, threshold)
+    print('vocab size:', len(vocab_dict))
     process_file_fb(infile, keyword_set, vocab_dict, max_sample=1, threshold=threshold)
