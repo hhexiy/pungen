@@ -98,8 +98,8 @@ class Retriever(object):
 
         valid_templates = [t for t in templates if self.valid_template(t)]
         if len(valid_templates) == 0:
-            valid_tempaltes = templates
-        templates = sorted(valid_tempaltes, reverse=True)[:num_templates]
+            valid_templates = templates
+        templates = sorted(valid_templates, reverse=True)[:num_templates]
         return templates
 
 

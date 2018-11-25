@@ -41,9 +41,6 @@ class TypeRecognizer(object):
             return False
         return True
 
-    def save(self):
-        pass
-
 class TypeRecognizer2(object):
 
     types = ['person', 'group', 'organization', 'location']

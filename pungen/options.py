@@ -25,3 +25,4 @@ def add_retriever_args(parser):
 def add_generic_args(parser):
     parser.add_argument('--outdir', default='./results')
     parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--pun-freq-threshold', type=int, default=100, help='only process pun/alternative words whose frequences are larger than the threshold')

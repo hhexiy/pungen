@@ -37,7 +37,6 @@ def get_lemma(word, parsed=False):
 
     return lemma
 
-
 def sentence_iterator(file_, n=-1, ner=False):
     with open(file_, 'r') as fin:
         for i, line in enumerate(fin):

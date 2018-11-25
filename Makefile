@@ -93,7 +93,7 @@ generate-pun:
 		--beam 20 --nbest 1 --unkpen 100 \
 		--system $(system) --task edit \
 		--retriever-model models/$(gdata)/retriever.pkl --doc-file data/$(gdata)/raw/sent.tokenized.txt --pos-threshold 0. \
-		--lm-path models/wikitext --word-counts-path models/wikitext/dict.txt \
+		--lm-path models/wikitext --word-counts-path data/bookcorpus/edit/bin/data/dict.src.txt \
 		--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt \
 		--num-topic-word 500 \
 		--pun-words data/semeval/hetero/dev.json \
