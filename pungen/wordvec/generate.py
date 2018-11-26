@@ -37,7 +37,6 @@ class SkipGram(object):
     def predict_neighbors(self, word, k=20, masked_words=None):
         # take lemma because skipgram is trained on lemmas
         lemma = get_lemma(word)
-        logger.debug('word={}, lemma={}'.format(word, lemma))
         word = lemma
 
         owords = range(len(self.vocab))

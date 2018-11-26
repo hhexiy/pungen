@@ -12,7 +12,7 @@ import pickle as pkl
 import json
 import matplotlib.pyplot as plt
 
-from pungen.scorer import LMScorer, SurprisalPunScorer, UnigramModel, GoodmanPunScorer
+from pungen.scorer import LMScorer, SurprisalScorer, UnigramModel, GoodmanScorer
 from pungen.options import add_scorer_args, add_generic_args
 from pungen.utils import logging_config
 from pungen.wordvec.generate import SkipGram
@@ -127,8 +127,8 @@ def score_examples(args):
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
 
-    scorers = [SurprisalPunScorer(lm, unigram_model, local_window_size=args.local_window_size),
-               GoodmanPunScorer(unigram_model, skipgram)]
+    scorers = [SurprisalScorer(lm, unigram_model, local_window_size=args.local_window_size),
+               GoodmanScorer(unigram_model, skipgram)]
 
     candidates = parse_human_eval_data(args.human_eval)
     for c in candidates:

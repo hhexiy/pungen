@@ -115,9 +115,9 @@ class PunScorer(object):
 
 class RandomScorer(PunScorer):
     def analyze(self, pun_sent, pun_word_id, alter_word):
-        return {'random': np.random.random()}
+        return {'random': float(np.random.random())}
 
-class SurprisalPunScorer(PunScorer):
+class SurprisalScorer(PunScorer):
     def __init__(self, lm, um, local_window_size=2):
         self.lm = lm
         self.um = um
@@ -255,7 +255,7 @@ class GoodmanScoreCaculator(object):
         return np.sum(kl_divs)
 
 
-class GoodmanPunScorer(PunScorer):
+class GoodmanScorer(PunScorer):
     def __init__(self, um, skipgram):
         self.um = um
         self.skipgram = skipgram
@@ -291,7 +291,7 @@ class GoodmanPunScorer(PunScorer):
         return res
 
 
-class LearnedPunScorer(PunScorer):
+class LearnedScorer(PunScorer):
     def __init__(self, model, features, scorers):
         self.model = model
         self.features = features
@@ -311,5 +311,5 @@ class LearnedPunScorer(PunScorer):
 
     def score(self, pun_sent, pun_word_id, alter_word):
         res = self.analyze(pun_sent, pun_word_id, alter_word)
-        score = self.model.predict([res[f] for f in self.features])
-        return score
+        score = self.model.predict([[res[f] for f in self.features]])
+        return float(score)

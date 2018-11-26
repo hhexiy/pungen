@@ -111,18 +111,6 @@ class RulebasedGenerator(object):
 
         words = self.neighbor_predictor.predict_neighbors(pun_word, k=k, masked_words=[del_word])
 
-        # POS constraints
-        #new_words = []
-        #parsed_words = nlp.pipe(words)
-        #for w in parsed_words:
-        #    w_ = w[0]
-        #    if w_.pos_ in tags:
-        #        new_words.append(w_.lemma_)
-        #words = new_words
-        #if len(words) == 0:
-        #    logger.info('FAIL: no topic words has POS in {}.'.format(','.join(tags)))
-        #    return words
-
         # type constraints
         new_words = []
         for w in words:
@@ -384,6 +372,7 @@ class NeuralCombinerGenerator(RulebasedGenerator):
             logger.debug('Inserted word {} is OOV'.format(insert_word))
             yield None, None
         logger.debug('template: {}'.format(' '.join(template)))
+        logger.debug('deleted: {}'.format(' '.join(pun_sent[start:end])))
         logger.debug('insert: {}'.format(' '.join(deleted)))
         results = self._generate([template], [deleted])
         for s in results:

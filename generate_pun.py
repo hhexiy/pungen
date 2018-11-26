@@ -8,7 +8,7 @@ from fairseq import options
 
 from pungen.retriever import Retriever
 from pungen.generator import SkipGram, RulebasedGenerator, NeuralCombinerGenerator, RetrieveGenerator, RetrieveSwapGenerator
-from pungen.scorer import LMScorer, SurprisalPunScorer, UnigramModel, RandomScorer
+from pungen.scorer import LMScorer, SurprisalScorer, UnigramModel, RandomScorer, GoodmanScorer, LearnedScorer
 from pungen.type import TypeRecognizer
 from pungen.options import add_scorer_args, add_editor_args, add_retriever_args, add_generic_args
 from pungen.utils import logging_config, get_lemma, ensure_exist, get_spacy_nlp
@@ -46,10 +46,10 @@ def feasible_pun_words(pun_word, alter_word, unigram_model, skipgram=None, freq_
     #    logger.info('FAIL: different POS tags')
     #    return False, 'pos tag'
 
-    if unigram_model.word_counts.get(pun_word, 0) < freq_threshold or \
-        unigram_model.word_counts.get(alter_word, 0) < freq_threshold:
-        logger.info('FAIL: rare words')
-        return False, 'rare'
+    #if unigram_model.word_counts.get(pun_word, 0) < freq_threshold or \
+    #    unigram_model.word_counts.get(alter_word, 0) < freq_threshold:
+    #    logger.info('FAIL: rare words')
+    #    return False, 'rare'
 
     if skipgram and skipgram.vocab.index(get_lemma(pun_word)) == skipgram.vocab.unk():
         logger.info('FAIL: unknown pun word: {}'.format(pun_word))
@@ -65,16 +65,25 @@ def main(args):
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     retriever = Retriever(args.doc_file, path=args.retriever_model, overwrite=args.overwrite_retriever_model)
 
-    if args.system.startswith('rule'):
+    if args.system.startswith('rule') or args.scorer in ('goodman', 'learned'):
         skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
     else:
         skipgram = None
 
     if args.scorer == 'random':
         scorer = RandomScorer()
-    elif args.scroer == 'surprisal':
+    elif args.scorer == 'surprisal':
         lm = LMScorer.load_model(args.lm_path)
-        scorer = SurprisalPunScorer(lm, unigram_model)
+        scorer = SurprisalScorer(lm, unigram_model, local_window_size=args.local_window_size)
+    elif args.scorer == 'goodman':
+        scorer = GoodmanScorer(unigram_model, skipgram)
+    elif args.scorer == 'learned':
+        lm = LMScorer.load_model(args.lm_path)
+        _scorers = [
+                SurprisalScorer(lm, unigram_model, local_window_size=args.local_window_size),
+                GoodmanScorer(unigram_model, skipgram)]
+        scorer = LearnedScorer.from_pickle(args.learned_scorer_weights, args.learned_scorer_features, _scorers)
+
 
     type_recognizer = TypeRecognizer()
 
@@ -106,28 +115,9 @@ def main(args):
             continue
 
         results = [r for r in results if r.get('score') is not None]
-
-        # group by template
-        if args.system.startswith('rule'):
-            result_groups = defaultdict(list)
-            for r in results:
-                result_groups[r['template-id']].append(r)
-
-            sorted_group_results = {}
-            # sort within a template
-            for id_, results_ in result_groups.items():
-                results_ = sorted(results_,
-                        key=lambda x: x['score'], reverse=True)[:3]
-                sorted_group_results[id_] = results_
-            # sort across templates
-            sorted_groups = sorted(sorted_group_results.values(), key=lambda x: sum([x_['score'] for x_ in x]), reverse=True)
-
-            for results in sorted_groups:
-                logger.debug('RETRIEVED: {}'.format(results[0]['retrieved']))
-                for r in results:
-                    logger.debug('{} -> {}'.format(r['deleted'], r['inserted']))
-                    logger.debug('{:.2f} {}'.format(r['score'], ' '.join(r['output'])))
-                logger.debug(' ')
+        results = sorted(results, key=lambda r: r['score'], reverse=True)
+        for r in results[:3]:
+            logger.info('{:<8.2f}{}'.format(r['score'], ' '.join(r['output'])))
 
     json.dump(puns, open(os.path.join(args.outdir, 'results.json'), 'w'))
 
