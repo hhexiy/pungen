@@ -1,4 +1,5 @@
 import argparse
+import os
 import pickle as pkl
 import torch
 import numpy as np
@@ -31,8 +32,7 @@ class LMScorer(object):
 
     @classmethod
     def load_model(cls, path, cpu=False):
-        # TODO: don't hardcode path
-        args = argparse.Namespace(data=path, path=path+'/wiki103.pt', cpu=cpu, task='language_modeling',
+        args = argparse.Namespace(data=os.path.dirname(path), path=path, cpu=cpu, task='language_modeling',
                 output_dictionary_size=-1, self_target=False, future_target=False, past_target=False)
         use_cuda = torch.cuda.is_available() and not cpu
         logger.info('loading language model from {}'.format(args.path))
@@ -118,7 +118,7 @@ class RandomScorer(PunScorer):
         return {'random': np.random.random()}
 
 class SurprisalPunScorer(PunScorer):
-    def __init__(self, lm, um, local_window_size=3, skipgram=None):
+    def __init__(self, lm, um, local_window_size=2, skipgram=None):
         self.lm = lm
         self.um = um
         self.local_window_size = local_window_size

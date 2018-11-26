@@ -127,7 +127,7 @@ def score_examples(args):
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
 
-    scorers = [SurprisalPunScorer(lm, unigram_model, skipgram=skipgram, local_window_size=2),
+    scorers = [SurprisalPunScorer(lm, unigram_model, skipgram=skipgram, local_window_size=args.local_window_size),
                GoodmanPunScorer(lm, unigram_model, skipgram)]
 
     candidates = parse_human_eval_data(args.human_eval)
@@ -139,6 +139,8 @@ def score_examples(args):
 
 
 def main(args):
+    json.dump(vars(args), open(os.path.join(args.outdir, 'config.json'), 'w'))
+
     filename = os.path.join(args.outdir, 'scores.json')
     if not os.path.exists(filename) or args.ignore_cache:
         candidates = score_examples(args)

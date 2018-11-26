@@ -93,12 +93,14 @@ generate-pun:
 		--beam 20 --nbest 1 --unkpen 100 \
 		--system $(system) --task edit \
 		--retriever-model models/$(gdata)/retriever.pkl --doc-file data/$(gdata)/raw/sent.tokenized.txt --pos-threshold 0. \
-		--lm-path models/wikitext --word-counts-path data/bookcorpus/edit/bin/data/dict.src.txt \
+		--lm-path models/wikitext/wiki103.pt --word-counts-path data/bookcorpus/edit/bin/data/dict.src.txt \
 		--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt \
 		--num-topic-word 500 \
 		--pun-words data/semeval/hetero/dev.json \
 		--outdir results/semeval/hetero/$(outdir) \
-		--scorer random
+		--scorer learned \
+		--learned-scorer-weights results/score-eval/lr_model.pkl \
+		--learned-scorer-features results/score-eval/features.pkl
 
 neural-generate:
 	python src/generator.py data/$(data)/bin/data \
@@ -126,7 +128,7 @@ build-retriever:
 	python -m pungen.retriever --doc-file data/$(gdata)/raw/sent.tokenized.txt --path models/$(gdata)/retriever.pkl --overwrite
 
 human-corr:
-	python eval_scoring_func.py --human-eval data/eval/sentences_with_scores.txt --lm-path models/wikitext --word-counts-path models/wikitext/dict.txt \
+	python eval_scoring_func.py --human-eval data/eval/sentences_with_scores.txt --lm-path models/wikitext/wiki103.pt --word-counts-path models/wikitext/dict.txt \
 	--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt --outdir results/score-eval \
 	--features ratio grammar ambiguity --ignore-cache
 
