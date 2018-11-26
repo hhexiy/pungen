@@ -127,7 +127,8 @@ build-retriever:
 
 human-corr:
 	python eval_scoring_func.py --human-eval data/eval/sentences_with_scores.txt --lm-path models/wikitext --word-counts-path models/wikitext/dict.txt \
-	--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt --outdir results/score-eval
+	--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt --outdir results/score-eval \
+	--features ratio grammar ambiguity --ignore-cache
 
 prepare-pun-data:
 	PYTHONPATH=. python scripts/make_pun_src_tgt_files.py --pun-data data/semeval/$(type)/dev.json --output data/pun/ --dev-frac 0.1

@@ -1,4 +1,5 @@
 import argparse
+import pickle as pkl
 import torch
 import numpy as np
 from collections import defaultdict
@@ -9,7 +10,7 @@ from fairseq.sequence_scorer import SequenceScorer
 import logging
 logger = logging.getLogger('pungen')
 
-from .utils import get_lemma, get_spacy_nlp, STOP_WORDS, EPS
+from .utils import get_lemma, get_spacy_nlp, STOP_WORDS
 nlp = get_spacy_nlp()
 
 def is_content(word, tag):
@@ -100,12 +101,23 @@ class UnigramModel(object):
     def score(self, tokens):
         return [self._score(token) for token in tokens]
 
-
-class RandomScorer(object):
-    def score(self, pun_sent, pun_word_id, alter_word):
-        return np.random.random()
-
 class PunScorer(object):
+    def analyze(self, pun_sent, pun_word_id, alter_word):
+        """Return multiple scores by category.
+        """
+        raise NotImplementedError
+
+    def score(self, pun_sent, pun_word_id, alter_word):
+        """Return aggregated scores.
+        """
+        scores = self.analyze(pun_sent, pun_word_id, alter_word)
+        return sum(scores.values())
+
+class RandomScorer(PunScorer):
+    def analyze(self, pun_sent, pun_word_id, alter_word):
+        return {'random': np.random.random()}
+
+class SurprisalPunScorer(PunScorer):
     def __init__(self, lm, um, local_window_size=3, skipgram=None):
         self.lm = lm
         self.um = um
@@ -122,7 +134,7 @@ class PunScorer(object):
         score = (np.sum(lm_scores) - np.sum(unigram_scores)) / len(sent)
         return score
 
-    def score(self, pun_sent, pun_word_id, alter_word):
+    def analyze(self, pun_sent, pun_word_id, alter_word):
         def normalize(x, y):
             px = np.exp(x)
             py = np.exp(y)
@@ -159,49 +171,21 @@ class PunScorer(object):
             global_alter_score = np.sum(np.log(alter_skipgram_scores.squeeze()))
         global_skipgram_score = global_alter_score - global_pun_score
 
-        #print(pun_sent)
-        #print(pun_sent[pun_word_id])
-        #sents = [alter_sent[:pun_word_id+1], pun_sent[:pun_word_id+1], local_alter_sent, local_pun_sent]
         sents = [alter_sent, pun_sent, local_alter_sent, local_pun_sent]
         scores = self.lm.score_sents(sents, tokenize=lambda x: x)
-        #print('global alter', np.sum(scores[0]), sents[0])
-        #print('global pun', np.sum(scores[1]), sents[1])
-        #print('local alter', np.sum(scores[2]), sents[2])
-        #print('local pun', np.sum(scores[3]), sents[3])
-        # surprisal = logp(alter) - logp(pun)
         global_surprisal = np.sum(scores[0]) - np.sum(scores[1])
         local_surprisal = np.sum(scores[2]) - np.sum(scores[3])
-
-        #global_scores = normalize(scores[0][-1], scores[1][-1])
-        #local_scores = normalize(scores[2][-1], scores[3][-1])
-        #print('global alter', global_scores[0], sents[0])
-        #print('global pun', global_scores[1], sents[1])
-        #print('local alter', local_scores[0], sents[2])
-        #print('local pun', local_scores[1], sents[3])
-        #global_surprisal = global_scores[0] - global_scores[1]
-        #local_surprisal = local_scores[0] - local_scores[1]
-
         grammar = self.grammaticality_score(pun_sent, scores[1])
 
         # ratio
         if not (global_surprisal > 0 and local_surprisal > 0):
-            r = -1000.
+            r = -1.
         else:
             r = local_surprisal / global_surprisal  # larger is better
 
-        res = {'local': local_surprisal, 'global': global_surprisal, 'grammar': grammar, 'ratio': r, 'global_pun_skipgram': global_pun_score, 'global_alter_skipgram': global_alter_score, 'global_skipgram': global_skipgram_score,
-        'local_alter': np.sum(scores[0]),
-        'local_pun': np.sum(scores[1]),
-        'global_alter': np.sum(scores[2]),
-        'global_pun': np.sum(scores[3])}
+        res = {'grammar': grammar, 'ratio': r}
         res = {k: float(v) for k, v in res.items()}
         return res
-
-        #if not (global_surprisal > 0 and local_surprisal > 0):
-        #    return -1000.
-        #else:
-        #    r = local_surprisal / global_surprisal  # larger is better
-        #    return float(r + grammar)
 
 
 class GoodmanScoreCaculator(object):
@@ -295,7 +279,7 @@ class GoodmanScoreCaculator(object):
         return np.sum(kl_divs)
 
 
-class GoodmanPunScorer(object):
+class GoodmanPunScorer(PunScorer):
     def __init__(self, lm, um, skipgram):
         self.lm = lm
         self.um = um
@@ -314,7 +298,7 @@ class GoodmanPunScorer(object):
         end = i + w
         return start, end
 
-    def score(self, pun_sent, pun_word_id, alter_word):
+    def analyze(self, pun_sent, pun_word_id, alter_word):
         pun_word = pun_sent[pun_word_id]
         pun_word = get_lemma(pun_word)
         alter_word = get_lemma(alter_word)
@@ -323,28 +307,34 @@ class GoodmanPunScorer(object):
         parsed_sent = nlp(' '.join(pun_sent))
         content_words = [get_lemma(x, parsed=True) for x in parsed_sent if self.is_content(x.text, x.tag_)]
 
-        local_start, local_end = self._get_window(pun_word_id, 3)
-        n = int(len(pun_sent) / 3)
-        local_content_words = [get_lemma(x, parsed=True) for x in parsed_sent[n:] if self.is_content(x.text, x.tag_)]
-        calculator = GoodmanScoreCaculator(self.lm, self.um, self.skipgram, local_content_words, meanings)
-        posterios = calculator.meaning_posterior()
-        local_pun = posterios[pun_word]
-        local_alter = posterios[alter_word]
-        local_ambiguity = calculator.ambiguity()
-        #local_surprisal = local_alter - local_pun
-
-        global_content_words = [get_lemma(x, parsed=True) for x in parsed_sent[:n] if self.is_content(x.text, x.tag_)]
-        if len(global_content_words) == 0:
-            global_ambiguity = local_ambiguity
-        else:
-            calculator = GoodmanScoreCaculator(self.lm, self.um, self.skipgram, global_content_words, meanings)
-            global_ambiguity = calculator.ambiguity()
-
-
         calculator = GoodmanScoreCaculator(self.lm, self.um, self.skipgram, content_words, meanings)
         ambiguity = calculator.ambiguity()
         distinctiveness = calculator.distinctiveness()
 
-        res = {'ambiguity': ambiguity, 'distinctiveness': distinctiveness, 'local_alter': local_alter, 'local_pun': local_pun, 'local_ambiguity': local_ambiguity, 'global_ambiguity': global_ambiguity}
+        res = {'ambiguity': ambiguity, 'distinctiveness': distinctiveness}
         res = {k: float(v) for k, v in res.items()}
         return res
+
+
+class LearnedPunScorer(PunScorer):
+    def __init__(self, model, features, scorers):
+        self.model = model
+        self.features = features
+        self.scorers = scorers
+
+    @classmethod
+    def from_pickle(cls, model_path, features_path, scorers):
+        model = pkl.load(open(model_path, 'rb'))
+        features = pkl.load(open(features_path, 'rb'))
+        return cls(model, features, scorers)
+
+    def analyze(self, pun_sent, pun_word_id, alter_word):
+        res = {}
+        for scorer in self.scorers:
+            res.update(scorer.analyze(pun_sent, pun_word_id, alter_word))
+        return res
+
+    def score(self, pun_sent, pun_word_id, alter_word):
+        res = self.analyze(pun_sent, pun_word_id, alter_word)
+        score = self.model.predict([res[f] for f in self.features])
+        return score

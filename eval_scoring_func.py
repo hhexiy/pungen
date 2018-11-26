@@ -12,7 +12,7 @@ import pickle as pkl
 import json
 import matplotlib.pyplot as plt
 
-from pungen.scorer import LMScorer, PunScorer, UnigramModel, GoodmanPunScorer
+from pungen.scorer import LMScorer, SurprisalPunScorer, UnigramModel, GoodmanPunScorer
 from pungen.options import add_scorer_args, add_generic_args
 from pungen.utils import logging_config
 from pungen.wordvec.generate import SkipGram
@@ -26,7 +26,9 @@ def parse_args():
     add_generic_args(parser)
     parser.add_argument('--skipgram-model', nargs=2, help='pretrained skipgram model [vocab, model]')
     parser.add_argument('--skipgram-embed-size', type=int, default=300, help='word embedding size in skipgram model')
-    parser.add_argument('--human-eval')
+    parser.add_argument('--human-eval', help='path to human score file')
+    parser.add_argument('--features', nargs='+', default=['ratio', 'grammar', 'ambiguity'], help='features to analyze')
+    parser.add_argument('--ignore-cache', action='store_true', help='ignore cached scores. cache path: `args.outdir`/scores.json')
     args = parser.parse_args()
     return args
 
@@ -111,13 +113,11 @@ def plot(scores, x_features, y_features, path='./', file_format='jpg'):
     f, axarr = plt.subplots(nrows, ncols)
     for i, x_feature in enumerate(x_features):
         for j, y_feature in enumerate(y_features):
-            #plt.subplot(nrows, ncols, ind)
             x = np.array([s[x_feature] for s in scores])
             y = np.array([s[y_feature] for s in scores])
             axarr[ind].scatter(x, y)
             axarr[ind].set_xlabel(x_feature)
             axarr[ind].set_ylabel(y_feature)
-            #axarr[ind].set_title('{} vs {}'.format(x_feature, y_feature))
             ind += 1
     f.subplots_adjust(hspace=0.8)
     plt.savefig('x_human.jpg', format=file_format)
@@ -127,20 +127,20 @@ def score_examples(args):
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
 
-    scorers = [PunScorer(lm, unigram_model, skipgram=skipgram, local_window_size=2),
-                GoodmanPunScorer(lm, unigram_model, skipgram)]
+    scorers = [SurprisalPunScorer(lm, unigram_model, skipgram=skipgram, local_window_size=2),
+               GoodmanPunScorer(lm, unigram_model, skipgram)]
 
     candidates = parse_human_eval_data(args.human_eval)
     for c in candidates:
         for scorer in scorers:
-            scores = scorer.score(c['pun_sent'], c['pun_word_id'], c['alter_word'])
+            scores = scorer.analyze(c['pun_sent'], c['pun_word_id'], c['alter_word'])
             c['scores'].update(scores)
     return candidates
 
 
 def main(args):
     filename = os.path.join(args.outdir, 'scores.json')
-    if not os.path.exists(filename):
+    if not os.path.exists(filename) or args.ignore_cache:
         candidates = score_examples(args)
         json.dump(candidates, open(filename, 'w'))
     else:
@@ -163,16 +163,13 @@ def main(args):
     scores = [c['scores'] for c in candidates]
 
     # Plot
-    plot(scores, x_features=['local', 'global', 'ambiguity', 'grammar'], y_features=['human'])
+    plot(scores, x_features=args.features, y_features=['human'])
 
     # Linear regression
-    #features = ['global', 'local', 'ratio', 'grammar', 'ambiguity', 'global_pun_skipgram', 'global_alter_skipgram', 'global_skipgram']
-    features = ['global', 'local', 'grammar', 'ambiguity']
-    #features = ['grammar', 'local_ambiguity', 'global_ambiguity']
-    #features = ['grammar', 'ambiguity']
-    #features = ['global_alter', 'global_pun', 'local_alter', 'local_pun', 'grammar']
+    features = args.features
     model, r2, feature_stats = linear_regression(scores, features)
     pkl.dump(model, open(os.path.join(args.outdir, 'lr_model.pkl'), 'wb'))
+    pkl.dump(features, open(os.path.join(args.outdir, 'features.pkl'), 'wb'))
 
     logger.info('linear regression')
     for name, stats in feature_stats.items():

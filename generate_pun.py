@@ -8,7 +8,7 @@ from fairseq import options
 
 from pungen.retriever import Retriever
 from pungen.generator import SkipGram, RulebasedGenerator, NeuralCombinerGenerator, RetrieveGenerator, RetrieveSwapGenerator
-from pungen.scorer import LMScorer, PunScorer, UnigramModel, RandomScorer
+from pungen.scorer import LMScorer, SurprisalPunScorer, UnigramModel, RandomScorer
 from pungen.type import TypeRecognizer
 from pungen.options import add_scorer_args, add_editor_args, add_retriever_args, add_generic_args
 from pungen.utils import logging_config, get_lemma, ensure_exist, get_spacy_nlp
@@ -74,7 +74,7 @@ def main(args):
         scorer = RandomScorer()
     elif args.scroer == 'surprisal':
         lm = LMScorer.load_model(args.lm_path)
-        scorer = PunScorer(lm, unigram_model)
+        scorer = SurprisalPunScorer(lm, unigram_model)
 
     type_recognizer = TypeRecognizer()
 
