@@ -127,8 +127,8 @@ def score_examples(args):
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
 
-    scorers = [SurprisalPunScorer(lm, unigram_model, skipgram=skipgram, local_window_size=args.local_window_size),
-               GoodmanPunScorer(lm, unigram_model, skipgram)]
+    scorers = [SurprisalPunScorer(lm, unigram_model, local_window_size=args.local_window_size),
+               GoodmanPunScorer(unigram_model, skipgram)]
 
     candidates = parse_human_eval_data(args.human_eval)
     for c in candidates:

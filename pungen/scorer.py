@@ -118,11 +118,10 @@ class RandomScorer(PunScorer):
         return {'random': np.random.random()}
 
 class SurprisalPunScorer(PunScorer):
-    def __init__(self, lm, um, local_window_size=2, skipgram=None):
+    def __init__(self, lm, um, local_window_size=2):
         self.lm = lm
         self.um = um
         self.local_window_size = local_window_size
-        self.skipgram = skipgram
 
     def _get_window(self, i, w):
         start = max(0, i - w)
@@ -148,29 +147,6 @@ class SurprisalPunScorer(PunScorer):
         local_pun_sent = pun_sent[local_start:local_end]
         local_alter_sent = alter_sent[local_start:local_end]
 
-        global_start = 0
-        global_end = min(int(len(pun_sent) * 0.5), local_start)
-        parsed_pun_sent = nlp(' '.join(pun_sent))
-        parsed_alter_sent = nlp(' '.join(alter_sent))
-        global_pun_sent = [get_lemma(w, parsed=True) for w in parsed_pun_sent[:global_end] if is_content(w.text, w.tag_)]
-        if len(global_pun_sent) == 0:
-            global_pun_score = -100.
-            global_alter_score = -100.
-        else:
-            pun_skipgram_scores = self.skipgram.score(
-                    iwords=[get_lemma(parsed_pun_sent[pun_word_id], parsed=True)],
-                    owords=global_pun_sent,
-                    lemma=True
-                    )
-            alter_skipgram_scores = self.skipgram.score(
-                    iwords=[get_lemma(parsed_alter_sent[pun_word_id], parsed=True)],
-                    owords=global_pun_sent,
-                    lemma=True
-                    )
-            global_pun_score = np.sum(np.log(pun_skipgram_scores.squeeze()))
-            global_alter_score = np.sum(np.log(alter_skipgram_scores.squeeze()))
-        global_skipgram_score = global_alter_score - global_pun_score
-
         sents = [alter_sent, pun_sent, local_alter_sent, local_pun_sent]
         scores = self.lm.score_sents(sents, tokenize=lambda x: x)
         global_surprisal = np.sum(scores[0]) - np.sum(scores[1])
@@ -189,7 +165,7 @@ class SurprisalPunScorer(PunScorer):
 
 
 class GoodmanScoreCaculator(object):
-    def __init__(self, lm, um, skipgram, words, meanings):
+    def __init__(self, um, skipgram, words, meanings):
         self.words = words
         self.meanings = meanings
         _words = list(set(words + meanings))
@@ -280,8 +256,7 @@ class GoodmanScoreCaculator(object):
 
 
 class GoodmanPunScorer(PunScorer):
-    def __init__(self, lm, um, skipgram):
-        self.lm = lm
+    def __init__(self, um, skipgram):
         self.um = um
         self.skipgram = skipgram
 
@@ -307,7 +282,7 @@ class GoodmanPunScorer(PunScorer):
         parsed_sent = nlp(' '.join(pun_sent))
         content_words = [get_lemma(x, parsed=True) for x in parsed_sent if self.is_content(x.text, x.tag_)]
 
-        calculator = GoodmanScoreCaculator(self.lm, self.um, self.skipgram, content_words, meanings)
+        calculator = GoodmanScoreCaculator(self.um, self.skipgram, content_words, meanings)
         ambiguity = calculator.ambiguity()
         distinctiveness = calculator.distinctiveness()
 
