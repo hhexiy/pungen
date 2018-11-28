@@ -87,20 +87,23 @@ retrieve:
 
 system=rule
 gdata=bookcorpus
+split=dev
 generate-pun:
 	python generate_pun.py data/$(gdata)/$(data)/bin/data \
 		--path models/$(gdata)/$(data)/$(ckpt)/checkpoint_best.pt \
 		--beam 20 --nbest 1 --unkpen 100 \
 		--system $(system) --task edit \
-		--retriever-model models/$(gdata)/retriever.pkl --doc-file data/$(gdata)/raw/sent.tokenized.txt --pos-threshold 0. \
+		--retriever-model models/$(gdata)/retriever.pkl --doc-file data/$(gdata)/raw/sent.tokenized.txt \
 		--lm-path models/wikitext/wiki103.pt --word-counts-path models/wikitext/dict.txt \
 		--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt \
-		--num-topic-word 500 \
-		--pun-words data/semeval/hetero/dev.json \
-		--outdir results/semeval/hetero/$(outdir) \
-		--scorer learned \
+		--num-candidates 500 --num-templates 100 \
+		--num-topic-word 100 --type-consistency-threshold 0.3 \
+		--pun-words data/semeval/hetero/$(split).json \
+		--outdir results/semeval/hetero/$(split)/$(outdir) \
+		--scorer random \
 		--learned-scorer-weights results/score-eval/lr_model.pkl \
-		--learned-scorer-features results/score-eval/features.pkl
+		--learned-scorer-features results/score-eval/features.pkl \
+		--max-num-examples 100
 
 neural-generate:
 	python src/generator.py data/$(data)/bin/data \
@@ -127,10 +130,11 @@ parsed-to-tokens:
 build-retriever:
 	python -m pungen.retriever --doc-file data/$(gdata)/raw/sent.tokenized.txt --path models/$(gdata)/retriever.pkl --overwrite
 
+
 human-corr:
-	python eval_scoring_func.py --human-eval data/eval/sentences_with_scores.txt --lm-path models/wikitext/wiki103.pt --word-counts-path models/wikitext/dict.txt \
-	--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt --outdir results/score-eval \
-	--features ratio grammar ambiguity --ignore-cache
+	python eval_scoring_func.py --human-eval data/eval/$(data)_pun_scores.txt --lm-path models/wikitext/wiki103.pt --word-counts-path models/wikitext/dict.txt \
+	--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt --outdir results/human-eval/$(data) \
+	--features ratio grammar ambiguity distinctiveness --analysis #--ignore-cache
 
 prepare-pun-data:
 	PYTHONPATH=. python scripts/make_pun_src_tgt_files.py --pun-data data/semeval/$(type)/dev.json --output data/pun/ --dev-frac 0.1
@@ -185,3 +189,6 @@ all-results:
 	python scripts/aggregate_results.py --output-dirs results/semeval/hetero/retrieve results/semeval/hetero/retrieve+swap results/semeval/hetero/rule results/semeval/hetero/rule+neural \
 		--names retrieve retrieve+swap rule rule+neural \
 		--output results/semeval/hetero/all.txt
+
+render-results:
+	python scripts/render_results.py --input results/semeval/hetero/$(outdir)/results.json

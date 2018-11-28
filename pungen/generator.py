@@ -34,14 +34,14 @@ class RetrieveSwapGenerator(object):
         self.retriever = retriever
         self.scorer = scorer
 
-    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10, pos_th=0.5):
+    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10):
         """
         Args:
             k (int): number of topic words returned by skipgram (before filtering)
             ncands (int): number of sentences returned by retriever (before filtering)
             ntemps (int): number of templates returned by retriever (after filtering)
         """
-        templates = self.retriever.retrieve_pun_template(alter_word, num_cands=ncands, num_templates=ntemps, pos_threshold=pos_th)
+        templates = self.retriever.retrieve_pun_template(alter_word, num_cands=ncands, num_templates=ntemps)
         results = []
         for template in templates:
             pun_sent = template.replace_keyword(pun_word)
@@ -56,14 +56,14 @@ class RetrieveGenerator(object):
         self.retriever = retriever
         self.scorer = scorer
 
-    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10, pos_th=0.5):
+    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10):
         """
         Args:
             k (int): number of topic words returned by skipgram (before filtering)
             ncands (int): number of sentences returned by retriever (before filtering)
             ntemps (int): number of templates returned by retriever (after filtering)
         """
-        templates = self.retriever.retrieve_pun_template(pun_word, num_cands=ncands, num_templates=ntemps, pos_threshold=pos_th)
+        templates = self.retriever.retrieve_pun_template(pun_word, num_cands=ncands, num_templates=ntemps)
         results = []
         for template in templates:
             pun_sent = template.tokens
@@ -106,7 +106,7 @@ class RulebasedGenerator(object):
         # type constraints
         types = self.type_recognizer.get_type(del_word, 'noun')
         if len(types) == 0:
-            logger.info('FAIL: deleted word "{}" has unknown type.'.format(del_word))
+            logger.debug('FAIL: deleted word "{}" has unknown type.'.format(del_word))
             return []
 
         words = self.neighbor_predictor.predict_neighbors(pun_word, k=k, masked_words=[del_word])
@@ -118,7 +118,7 @@ class RulebasedGenerator(object):
                 new_words.append(w)
         words = new_words
         if len(words) == 0:
-            logger.info('FAIL: no topic words has same type as {}.'.format(del_word))
+            logger.debug('FAIL: no topic words has same type as {}.'.format(del_word))
 
         return words
 
@@ -132,14 +132,14 @@ class RulebasedGenerator(object):
         # pun_word_id is not changed due to rewrite
         yield s, pun_word_id
 
-    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10, pos_th=0.5):
+    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10):
         """
         Args:
             k (int): number of topic words returned by skipgram (before filtering)
             ncands (int): number of sentences returned by retriever (before filtering)
             ntemps (int): number of templates returned by retriever (after filtering)
         """
-        templates = self.retriever.retrieve_pun_template(alter_word, num_cands=ncands, num_templates=ntemps, pos_threshold=pos_th)
+        templates = self.retriever.retrieve_pun_template(alter_word, num_cands=ncands, num_templates=ntemps)
 
         results = []
         for i, (template, (delete_span_ids, delete_word_id)) in enumerate(zip(templates, self.delete_words(templates))):

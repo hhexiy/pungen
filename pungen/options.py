@@ -23,7 +23,10 @@ def add_retriever_args(parser):
     group.add_argument('--overwrite-retriever-model', action='store_true', help='overwrite existing retriever model; rebuild from doc_file')
     group.add_argument('--num-candidates', type=int, default=500, help='number of sentences to retrieve')
     group.add_argument('--num-templates', type=int, default=10, help='number of maximum pun templates to return')
-    group.add_argument('--pos-threshold', type=float, default=0., help='pun word must occur after the thresholding position [0, 1] in a sentence')
+
+def add_type_checker_args(parser):
+    group = parser.add_argument_group('Type consistency')
+    group.add_argument('--type-consistency-threshold', type=float, default=0.2, help='threshold of WordNet path similarity')
 
 def add_generic_args(parser):
     parser.add_argument('--outdir', default='./results')
