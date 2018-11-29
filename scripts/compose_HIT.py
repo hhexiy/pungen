@@ -9,14 +9,15 @@ from wordfreq import word_frequency
 from mosestokenizer import *
 
 
-def compose_collaborative_pun_hit(data_dict, outfile, top_k=5):
+def compose_collaborative_pun_hit(data_dict, key_filter, outfile, top_k=5):
     with open(outfile, 'w') as outf:
         header = ['Pun_alter']
         for i in range(top_k):
             header.append('sentence_'+str(i+1))
         assert len(header) == top_k + 1
         outf.write(','.join(header)+'\n')
-        for key, results in data_dict.items():
+        for key in key_filter:
+            results = data_dict[key]
             if word_frequency(key[0], 'en') < 1e-6 or word_frequency(key[1], 'en') < 1e-6 :
                 print('skip the keyword pair:', ' '.join(key))
                 continue
@@ -138,9 +139,10 @@ def load_pku(kw_file, sent_file, every=100, top_k=1):
                 local = []
     assert len(key_array) == len(results_array)
     for key, results in zip(key_array, results_array):
-        if word_frequency(key[0], 'en') < 1e-6 or word_frequency(key[1], 'en') < 1e-6 :
+        '''if word_frequency(key[0], 'en') < 1e-6 or word_frequency(key[1], 'en') < 1e-6 :
             print('skip the keyword pair:', ' '.join(key))
             continue
+        '''
         results = sorted(results, key=lambda x: x[1])[:top_k]
         results = ['"' + '\''.join(res[0].split('"'))+'"' for res in results]
         try:
@@ -197,23 +199,34 @@ def combine_results(pku_dict, top_k=1, *other_dicts):
     return pun_words, sentences
 
 
+def load_key_filter(fkeyfilter, top=20):
+    data_array = []
+    with open(fkeyfilter) as inf:
+        for line in inf:
+            elems = line.strip().split()
+            data_array.append(elems)
+    return [tuple(key.split('-')) for key, score in data_array[:top]]
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', default='compose_eval_hit', help='which hit to compose')
-    parser.add_argument('--files', nargs='+', help='')
+    parser.add_argument('--files', nargs='+', help='the input files. can take multiple files.')
     parser.add_argument('--top-k', default=1, type=int, help='get top k from each method')
     parser.add_argument('--keywords', help='file containing keywords')
+    parser.add_argument('--fkeyfilter', help='file containing filtered keywords')
     parser.add_argument('--outfile', default='test.csv', help='output file for the retrieved sentences')
     args = parser.parse_args()
     func = eval(args.task)
-
+    
     if args.task == 'compose_collaborative_pun_hit':
         filename = args.files[0]
-        if 'highlight' in filename:
+        if 'final' in filename:
             data_dict = load_pku(args.keywords, filename, top_k=args.top_k)
         else:
             data_dict = load_json(filename, top_k=args.top_k)
-        func(data_dict, args.outfile, args.top_k)
+        key_filter = load_key_filter(args.fkeyfilter)
+        print(len(key_filter))
+        func(data_dict, key_filter, args.outfile, args.top_k)
 
     if args.task == 'compose_eval_hit':
         retrieve = load_json(args.files[0], top_k=args.top_k)

@@ -1,7 +1,8 @@
 #!/user/bin/python
 
-import sys, csv, re
 import copy
+import argparse
+import sys, csv, re
 import numpy as np
 from operator import itemgetter
 from sklearn.metrics import cohen_kappa_score
@@ -38,6 +39,25 @@ def load_analysis_eval(infile):
                         turker_dict[turker_id] = []
                     turker_dict[turker_id].append((sentence_info, answer))
     return sentence_dict, turker_dict
+
+
+def load_composition_results(infile, num_methods, group_per_page):
+    sentence_dict = dict()
+    pun_dict = dict()
+    turker_dict = dict()
+    line_num = 0
+    counter = 0
+    with open(infile) as csvfile:
+        inf = csv.reader(csvfile, delimiter=',', quotechar='\"')
+        for line in inf:
+            line_num += 1
+            if line_num == 1:
+                header_dict = read_header(line)
+                print (header_dict)
+                continue
+            elems = line
+            turker_id = elems[header_dict['WorkerId']] 
+
 
 def load_generation_eval(infile, num_methods, group_per_page):
     sentence_dict = dict()
@@ -107,6 +127,7 @@ def compute_generated_pun_results(pun_dict, sentence_dict, names, scale):
     counts = [0] * len(names)
     annotations = []
     sentences_with_scores = []
+    key_with_score = []
     for key, value in pun_dict.items():
         assert len(value) == 6, len(value)
         #temp_scores = [[] for i in range(len(names))]
@@ -117,12 +138,13 @@ def compute_generated_pun_results(pun_dict, sentence_dict, names, scale):
                 assert k in sentence_dict, k
                 if ii < len(names) -1 and len(sentence_dict[k]) > 6:
                     print('abnormal sentences!!', ii, sentence_dict[k], v)
-                score = np.sum(sentence_dict[k][1:])/np.count_nonzero(sentence_dict[k][1:]) if np.count_nonzero(sentence_dict[k][1:]) > 0 else 1
-                sentences_with_scores.append((k, names[ii], score))
+                score = (np.sum(sentence_dict[k][1:])/np.count_nonzero(sentence_dict[k][1:])) if np.count_nonzero(sentence_dict[k][1:]) > 0 else 0
+                counts[ii] += len(sentence_dict[k][1:]) - np.count_nonzero(sentence_dict[k][1:])
+                sentences_with_scores.append((k, key, names[ii], score))
                 temp_scores.append(score)
             # this one can be changed to different strategies.
             scores[ii].append(np.max(temp_scores))
-            counts[ii] += 1 
+        key_with_score.append((key, scores[0][-1]+scores[3][-1]))
             #annotations.append(value)
     #annotations = np.array(annotations)
     #print(annotations.shape)
@@ -135,9 +157,13 @@ def compute_generated_pun_results(pun_dict, sentence_dict, names, scale):
     for item in sorted_sents:
         print('\t'.join(list(map(str, item))))
     '''
+    sorted_key = sorted(key_with_score, key=itemgetter(1), reverse=True)
+    for item in sorted_key:
+        print('\t'.join(list(map(str, item))))
     for i in range(len(scores)-1):
         print(i, [(sum(np.array(sc)<np.array(scores[i])), sum(np.array(sc)>np.array(scores[i]))) for sc in scores[i+1:]])
     print([np.mean(sc)/scale for sc in scores])
+    print(counts)
     #return np.array(scores) / np.array(counts), np.mean(kappa_array), np.mean(spearman_array)
 
 def filter_bad_turker(turker_dict, sentence_dict, thres=0.2):
@@ -319,19 +345,27 @@ def parse_keywords_eval_hit(infile):
                     print (line[header_dict['story'+str(i)+'_2']])
 
 if __name__ == '__main__':
-    infile = sys.argv[1]
-    scale = float(sys.argv[2])
-    num_methods = 6
-    group_per_page = 2
-    sentence_dict, pun_dict, turker_dict = load_generation_eval(infile, num_methods, group_per_page)
-    print(len(sentence_dict))
-    print(len(pun_dict))
-    print(len(turker_dict))
-    filter_bad_turker(turker_dict, sentence_dict, thres=0.08*scale)
-    names = {'pku':0, 'retrieve':1, 'retrieve_repl':2, 'rule':3, 'neural':4, 'gold':5}
-    compute_generated_pun_results(pun_dict, sentence_dict, names, scale) 
-    exit(0)
-    names = {'pun':0, 'depun':1, 'retrieved_pw':2, 'retrieved_aw':3}
-    sentence_dict, turker_dict = load_analysis_eval(sys.argv[1])
-    filter_bad_turker(turker_dict, sentence_dict, thres=0.08*scale)
-    print (compute_results(sentence_dict))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--loader', default='load_generation_eval', help='which hit to load')
+    parser.add_argument('--task', default='compute_generated_pun_results', help='which task')
+    parser.add_argument('--scale', default=5, type=int, help='which hit to compose')
+    parser.add_argument('--num-methods', default=6, type=int, help='number of methods')
+    parser.add_argument('--group-perpage', default=2, type=int, help='how many groups in each HIT page')
+    parser.add_argument('--infile', help='the input file')
+    parser.add_argument('--outfile', default='test.csv', help='output file for the retrieved sentences')
+    args = parser.parse_args()
+    data_loader = eval(args.loader)
+    func = eval(args.task)
+    
+    if args.task == 'compute_generated_pun_results':
+	    results = data_loader(args.infile, args.num_methods, args.group_perpage)
+	    print([len(elem_dict) for elem_dict in results])
+	    filter_bad_turker(results[-1], results[0], thres=0.06*args.scale)
+	    names = {'pku':0, 'retrieve':1, 'retrieve_repl':2, 'rule':3, 'neural':4, 'gold':5}
+	    func(results[1], results[0], names, args.scale) 
+    
+    if args.task == 'compute_results':
+	    names = {'pun':0, 'depun':1, 'retrieved_pw':2, 'retrieved_aw':3}
+	    sentence_dict, turker_dict = load_analysis_eval(sys.argv[1])
+	    filter_bad_turker(turker_dict, sentence_dict, thres=0.08*scale)
+	    print (compute_results(sentence_dict))
