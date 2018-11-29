@@ -1,4 +1,6 @@
 import argparse
+import os
+import pickle as pkl
 import torch
 import numpy as np
 from collections import defaultdict
@@ -9,8 +11,16 @@ from fairseq.sequence_scorer import SequenceScorer
 import logging
 logger = logging.getLogger('pungen')
 
-from .utils import get_lemma, get_spacy_nlp, STOP_WORDS, EPS
+from .utils import get_lemma, get_spacy_nlp, STOP_WORDS
 nlp = get_spacy_nlp()
+
+def is_content(word, tag):
+    if not word in STOP_WORDS and \
+       (tag.startswith('NN') or \
+        tag.startswith('VB') or \
+        tag.startswith('JJ')):
+        return True
+    return False
 
 class LMScorer(object):
     def __init__(self, task, scorer, use_cuda):
@@ -22,8 +32,7 @@ class LMScorer(object):
 
     @classmethod
     def load_model(cls, path, cpu=False):
-        # TODO: don't hardcode path
-        args = argparse.Namespace(data=path, path=path+'/wiki103.pt', cpu=cpu, task='language_modeling',
+        args = argparse.Namespace(data=os.path.dirname(path), path=path, cpu=cpu, task='language_modeling',
                 output_dictionary_size=-1, self_target=False, future_target=False, past_target=False)
         use_cuda = torch.cuda.is_available() and not cpu
         logger.info('loading language model from {}'.format(args.path))
@@ -92,9 +101,24 @@ class UnigramModel(object):
     def score(self, tokens):
         return [self._score(token) for token in tokens]
 
-
 class PunScorer(object):
-    def __init__(self, lm, um, local_window_size=3):
+    def analyze(self, pun_sent, pun_word_id, alter_word):
+        """Return multiple scores by category.
+        """
+        raise NotImplementedError
+
+    def score(self, pun_sent, pun_word_id, alter_word):
+        """Return aggregated scores.
+        """
+        scores = self.analyze(pun_sent, pun_word_id, alter_word)
+        return sum(scores.values())
+
+class RandomScorer(PunScorer):
+    def analyze(self, pun_sent, pun_word_id, alter_word):
+        return {'random': float(np.random.random())}
+
+class SurprisalScorer(PunScorer):
+    def __init__(self, lm, um, local_window_size=2):
         self.lm = lm
         self.um = um
         self.local_window_size = local_window_size
@@ -109,7 +133,13 @@ class PunScorer(object):
         score = (np.sum(lm_scores) - np.sum(unigram_scores)) / len(sent)
         return score
 
-    def score(self, pun_sent, pun_word_id, alter_word):
+    def analyze(self, pun_sent, pun_word_id, alter_word):
+        def normalize(x, y):
+            px = np.exp(x)
+            py = np.exp(y)
+            z = px + py
+            return np.log(px/z), np.log(py/z)
+
         alter_sent = list(pun_sent)
         alter_sent[pun_word_id] = alter_word
 
@@ -119,23 +149,23 @@ class PunScorer(object):
 
         sents = [alter_sent, pun_sent, local_alter_sent, local_pun_sent]
         scores = self.lm.score_sents(sents, tokenize=lambda x: x)
-
-        # surprisal = logp(alter) - logp(pun)
         global_surprisal = np.sum(scores[0]) - np.sum(scores[1])
         local_surprisal = np.sum(scores[2]) - np.sum(scores[3])
         grammar = self.grammaticality_score(pun_sent, scores[1])
 
-        return {'local': local_surprisal, 'global': global_surprisal, 'grammar': grammar}
-
+        # ratio
         if not (global_surprisal > 0 and local_surprisal > 0):
-            return -1000.
+            r = -1.
         else:
             r = local_surprisal / global_surprisal  # larger is better
-            return float(r + grammar)
+
+        res = {'grammar': grammar, 'ratio': r}
+        res = {k: float(v) for k, v in res.items()}
+        return res
 
 
 class GoodmanScoreCaculator(object):
-    def __init__(self, lm, um, skipgram, words, meanings):
+    def __init__(self, um, skipgram, words, meanings):
         self.words = words
         self.meanings = meanings
         _words = list(set(words + meanings))
@@ -185,7 +215,7 @@ class GoodmanScoreCaculator(object):
         logprobs = {m: np.log(p / z) for m, p in zip(self.meanings, probs)}
         return logprobs
 
-    def meaning_posterior(self, m):
+    def _meaning_posterior(self, m):
         """p(m | sent)
         """
         sent = self.words
@@ -193,14 +223,18 @@ class GoodmanScoreCaculator(object):
         sent_likelihood = np.sum([self.word_likelihood(w, m) for w in sent])
         return self.meaning_prior[m] + sent_likelihood
 
-    def ambiguity(self):
-        meanings = self.meanings
-        sent = self.words
-        posteriors = [self.meaning_posterior(m) for m in meanings]
+    def meaning_posterior(self):
+        posteriors = [self._meaning_posterior(m) for m in self.meanings]
         # Normalize to distribution so that entropy makes sense
         posteriors = [np.exp(p) for p in posteriors]
         z = np.sum(posteriors)
         posteriors = [np.log(p / z) for p in posteriors]
+        return {m: p for m, p in zip(self.meanings, posteriors)}
+
+    def ambiguity(self):
+        meanings = self.meanings
+        sent = self.words
+        posteriors = self.meaning_posterior().values()
         #logger.debug('posteriors: {}'.format(posteriors))
         entropy = -1 * sum([np.exp(logp) * logp for logp in posteriors])
         #logger.debug('entropy: {}'.format(entropy))
@@ -221,9 +255,8 @@ class GoodmanScoreCaculator(object):
         return np.sum(kl_divs)
 
 
-class GoodmanPunScorer(object):
-    def __init__(self, lm, um, skipgram):
-        self.lm = lm
+class GoodmanScorer(PunScorer):
+    def __init__(self, um, skipgram):
         self.um = um
         self.skipgram = skipgram
 
@@ -235,7 +268,12 @@ class GoodmanPunScorer(object):
             return True
         return False
 
-    def score(self, pun_sent, pun_word_id, alter_word):
+    def _get_window(self, i, w):
+        start = max(0, i - w)
+        end = i + w
+        return start, end
+
+    def analyze(self, pun_sent, pun_word_id, alter_word):
         pun_word = pun_sent[pun_word_id]
         pun_word = get_lemma(pun_word)
         alter_word = get_lemma(alter_word)
@@ -244,8 +282,34 @@ class GoodmanPunScorer(object):
         parsed_sent = nlp(' '.join(pun_sent))
         content_words = [get_lemma(x, parsed=True) for x in parsed_sent if self.is_content(x.text, x.tag_)]
 
-        calculator = GoodmanScoreCaculator(self.lm, self.um, self.skipgram, content_words, meanings)
+        calculator = GoodmanScoreCaculator(self.um, self.skipgram, content_words, meanings)
         ambiguity = calculator.ambiguity()
         distinctiveness = calculator.distinctiveness()
 
-        return {'ambiguity': ambiguity, 'distinctiveness': distinctiveness}
+        res = {'ambiguity': ambiguity, 'distinctiveness': distinctiveness}
+        res = {k: float(v) for k, v in res.items()}
+        return res
+
+
+class LearnedScorer(PunScorer):
+    def __init__(self, model, features, scorers):
+        self.model = model
+        self.features = features
+        self.scorers = scorers
+
+    @classmethod
+    def from_pickle(cls, model_path, features_path, scorers):
+        model = pkl.load(open(model_path, 'rb'))
+        features = pkl.load(open(features_path, 'rb'))
+        return cls(model, features, scorers)
+
+    def analyze(self, pun_sent, pun_word_id, alter_word):
+        res = {}
+        for scorer in self.scorers:
+            res.update(scorer.analyze(pun_sent, pun_word_id, alter_word))
+        return res
+
+    def score(self, pun_sent, pun_word_id, alter_word):
+        res = self.analyze(pun_sent, pun_word_id, alter_word)
+        score = self.model.predict([[res[f] for f in self.features]])
+        return float(score)

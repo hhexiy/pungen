@@ -3,6 +3,10 @@ def add_scorer_args(parser):
     group.add_argument('--lm-path', help='pretrained LM for scoring')
     group.add_argument('--word-counts-path', help='vocab word counts for the unigram model')
     group.add_argument('--oov-prob', type=float, default=0.03, help='oov probability for smoothing')
+    group.add_argument('--scorer', choices=['random', 'surprisal', 'goodman', 'learned'], default='random', help='type of scorer')
+    group.add_argument('--learned-scorer-weights', help='path to scikit-learn LR model')
+    group.add_argument('--learned-scorer-features', help='path to LR model feature names')
+    group.add_argument('--local-window-size', type=int, default=2, help='window size for computing local surprisal')
 
 def add_editor_args(parser):
     group = parser.add_argument_group('Editing')
@@ -19,7 +23,12 @@ def add_retriever_args(parser):
     group.add_argument('--overwrite-retriever-model', action='store_true', help='overwrite existing retriever model; rebuild from doc_file')
     group.add_argument('--num-candidates', type=int, default=500, help='number of sentences to retrieve')
     group.add_argument('--num-templates', type=int, default=10, help='number of maximum pun templates to return')
-    group.add_argument('--pos-threshold', type=float, default=0., help='pun word must occur after the thresholding position [0, 1] in a sentence')
+
+def add_type_checker_args(parser):
+    group = parser.add_argument_group('Type consistency')
+    group.add_argument('--type-consistency-threshold', type=float, default=0.2, help='threshold of WordNet path similarity')
 
 def add_generic_args(parser):
-    parser.add_argument('--logfile')
+    parser.add_argument('--outdir', default='./results')
+    parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--pun-freq-threshold', type=int, default=100, help='only process pun/alternative words whose frequences are larger than the threshold')

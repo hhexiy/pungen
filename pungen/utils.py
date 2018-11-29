@@ -33,10 +33,9 @@ def get_lemma(word, parsed=False):
     if _word.lemma_ != '-PRON-':
         lemma = _word.lemma_
     else:
-        lemma = word
+        lemma = _word.text
 
     return lemma
-
 
 def sentence_iterator(file_, n=-1, ner=False):
     with open(file_, 'r') as fin:

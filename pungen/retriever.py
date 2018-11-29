@@ -20,6 +20,9 @@ class Template(object):
         self.num_key = len(self.keyword_positions)
         self.keyword_id = None if self.num_key == 0 else max(self.keyword_positions)
 
+    def __len__(self):
+        return len(self.tokens)
+
     def replace_keyword(self, word):
         tokens = list(self.tokens)
         tokens[self.keyword_id] = word
@@ -82,21 +85,10 @@ class Retriever(object):
         ids = np.argsort(scores)[-k:][::-1]
         return ids
 
-    #def check_pos(self, sent, word, pos_threshold):
-    #    pos = [i for i, w in enumerate(sent) if w == word]
-    #    if len(pos) == 0:
-    #        return False
-    #    p = max(pos)
-    #    if p < min(int(len(sent) * pos_threshold), len(sent) - 1):
-    #        return False
-    #    return True
+    def valid_template(self, template):
+        return template.num_key == 1
 
-    #def check_len(self, sent, len_threshold):
-    #    if len(sent) < len_threshold:
-    #        return False
-    #    return True
-
-    def retrieve_pun_template(self, pun_word, alter_word, len_threshold=10, pos_threshold=0.5, num_cands=500, num_templates=None):
+    def retrieve_pun_template(self, alter_word, len_threshold=10, pos_threshold=0.5, num_cands=500, num_templates=None):
         ids = self.query(alter_word, num_cands)
         templates = [Template(self.docs[id_].split(), alter_word) for id_ in ids]
         templates = [t for t in templates if t.num_key > 0 and len(t.tokens) > len_threshold]
@@ -104,7 +96,10 @@ class Retriever(object):
             logger.info('FAIL: no retrieved sentence contains the keyword {}.'.format(alter_word))
             return []
 
-        templates = sorted(templates, reverse=True)[:num_templates]
+        valid_templates = [t for t in templates if self.valid_template(t)]
+        if len(valid_templates) == 0:
+            valid_templates = templates
+        templates = sorted(valid_templates, reverse=True)[:num_templates]
         return templates
 
 
@@ -124,7 +119,7 @@ if __name__ == '__main__':
     if args.interactive:
         while True:
             alter_word, pun_word = input('Keywords:\n').split()
-            alter_sents, pun_sents, pun_word_ids, alter_ori_sents = retriever.retrieve_pun_template(pun_word, alter_word, num_cands=100)
+            alter_sents, pun_sents, pun_word_ids, alter_ori_sents = retriever.retrieve_pun_template(alter_word, num_cands=100)
             for ori_sent, sent in zip(alter_ori_sents, alter_sents):
                 print(' '.join(sent))
                 print(' '.join(ori_sent))

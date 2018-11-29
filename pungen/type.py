@@ -18,7 +18,7 @@ class TypeRecognizer(object):
 
     person_words = set(['we', 'he', 'she', 'i', 'you', 'they', 'who', 'him'])
 
-    def __init__(self, max_num_senses=3, threshold=0.2):
+    def __init__(self, max_num_senses=2, threshold=0.2):
         self.max_num_senses = max_num_senses
         self.threshold = threshold
         self.person = wn.synsets('person')[0]
@@ -40,9 +40,6 @@ class TypeRecognizer(object):
         if not scores or max(scores) < self.threshold:
             return False
         return True
-
-    def save(self):
-        pass
 
 class TypeRecognizer2(object):
 

@@ -8,7 +8,7 @@ from torch import LongTensor as LT
 from torch import FloatTensor as FT
 from fairseq.data.dictionary import Dictionary
 
-from pungen.utils import get_lemma
+from pungen.utils import get_lemma, STOP_WORDS
 from .model import Word2Vec, SGNS
 
 import logging
@@ -37,15 +37,15 @@ class SkipGram(object):
     def predict_neighbors(self, word, k=20, masked_words=None):
         # take lemma because skipgram is trained on lemmas
         lemma = get_lemma(word)
-        logger.debug('word={}, lemma={}'.format(word, lemma))
         word = lemma
 
         owords = range(len(self.vocab))
 
         # NOTE: 0 is <Lua heritage> in fairseq.data.dictionary
-        masked_inds = [self.vocab.index(word), self.vocab.unk(), self.vocab.eos(), 0]
+        masked_inds = [self.vocab.index(word), self.vocab.unk(), self.vocab.eos(), 0] + [self.vocab.index(w) for w in STOP_WORDS]
         if masked_words:
             masked_inds += [self.vocab.index(w) for w in masked_words]
+        masked_inds = set(masked_inds)
         owords = [w for w in owords if not w in masked_inds and self.vocab.count[w] > 100]
         neighbors = self.topk_neighbors([word], owords, k=k)
 

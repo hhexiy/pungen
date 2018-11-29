@@ -29,6 +29,50 @@ for ent in ('<org>', '<person>', '<date>', '<time>', '<gpe>', '<norp>',
 
 Batch = namedtuple('Batch', 'srcs tokens lengths')
 
+class RetrieveSwapGenerator(object):
+    def __init__(self, retriever, scorer):
+        self.retriever = retriever
+        self.scorer = scorer
+
+    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10):
+        """
+        Args:
+            k (int): number of topic words returned by skipgram (before filtering)
+            ncands (int): number of sentences returned by retriever (before filtering)
+            ntemps (int): number of templates returned by retriever (after filtering)
+        """
+        templates = self.retriever.retrieve_pun_template(alter_word, num_cands=ncands, num_templates=ntemps)
+        results = []
+        for template in templates:
+            pun_sent = template.replace_keyword(pun_word)
+            pun_word_id = template.keyword_id
+            score = self.scorer.score(pun_sent, pun_word_id, alter_word)
+            r = {'output': pun_sent, 'score': score}
+            results.append(r)
+        return results
+
+class RetrieveGenerator(object):
+    def __init__(self, retriever, scorer):
+        self.retriever = retriever
+        self.scorer = scorer
+
+    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10):
+        """
+        Args:
+            k (int): number of topic words returned by skipgram (before filtering)
+            ncands (int): number of sentences returned by retriever (before filtering)
+            ntemps (int): number of templates returned by retriever (after filtering)
+        """
+        templates = self.retriever.retrieve_pun_template(pun_word, num_cands=ncands, num_templates=ntemps)
+        results = []
+        for template in templates:
+            pun_sent = template.tokens
+            pun_word_id = template.keyword_id
+            score = self.scorer.score(pun_sent, pun_word_id, alter_word)
+            r = {'output': pun_sent, 'score': score}
+            results.append(r)
+        return results
+
 class RulebasedGenerator(object):
     def __init__(self, retriever, neighbor_predictor, type_recognizer, scorer, dist_to_pun=5):
         self.retriever = retriever
@@ -52,9 +96,9 @@ class RulebasedGenerator(object):
             if not ids:
                 yield None, None
             else:
-                del_word = ids[0]
-                del_span = [del_word]
-                yield del_span, del_word
+                del_word_id = ids[0]
+                del_span = (del_word_id, del_word_id+1)
+                yield del_span, del_word_id
 
     def get_topic_words(self, pun_word, del_word, context=None, tags=('NOUN', 'PROPN'), k=20):
         del_word = get_lemma(del_word)
@@ -62,22 +106,10 @@ class RulebasedGenerator(object):
         # type constraints
         types = self.type_recognizer.get_type(del_word, 'noun')
         if len(types) == 0:
-            logger.info('FAIL: deleted word "{}" has unknown type.'.format(del_word))
+            logger.debug('FAIL: deleted word "{}" has unknown type.'.format(del_word))
             return []
 
         words = self.neighbor_predictor.predict_neighbors(pun_word, k=k, masked_words=[del_word])
-
-        # POS constraints
-        #new_words = []
-        #parsed_words = nlp.pipe(words)
-        #for w in parsed_words:
-        #    w_ = w[0]
-        #    if w_.pos_ in tags:
-        #        new_words.append(w_.lemma_)
-        #words = new_words
-        #if len(words) == 0:
-        #    logger.info('FAIL: no topic words has POS in {}.'.format(','.join(tags)))
-        #    return words
 
         # type constraints
         new_words = []
@@ -86,29 +118,28 @@ class RulebasedGenerator(object):
                 new_words.append(w)
         words = new_words
         if len(words) == 0:
-            logger.info('FAIL: no topic words has same type as {}.'.format(del_word))
+            logger.debug('FAIL: no topic words has same type as {}.'.format(del_word))
 
         return words
 
-    def rewrite(self, pun_sent, delete_span_ids, insert_word, pun_word_id):
+    def rewrite(self, pun_sent, delete_span, insert_word, pun_word_id):
         """
         Return:
             s (list): rewritten sentence
             pun_word_id (int)
         """
-        s = list(pun_sent)
-        delete_id = delete_span_ids[0]
-        s[delete_id] = insert_word
+        s = pun_sent[:delete_span[0]] + [insert_word] + pun_sent[delete_span[1]:]
+        # pun_word_id is not changed due to rewrite
         yield s, pun_word_id
 
-    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10, pos_th=0.5):
+    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10):
         """
         Args:
             k (int): number of topic words returned by skipgram (before filtering)
             ncands (int): number of sentences returned by retriever (before filtering)
             ntemps (int): number of templates returned by retriever (after filtering)
         """
-        templates = self.retriever.retrieve_pun_template(pun_word, alter_word, num_cands=ncands, num_templates=ntemps, pos_threshold=pos_th)
+        templates = self.retriever.retrieve_pun_template(alter_word, num_cands=ncands, num_templates=ntemps)
 
         results = []
         for i, (template, (delete_span_ids, delete_word_id)) in enumerate(zip(templates, self.delete_words(templates))):
@@ -140,9 +171,10 @@ class RulebasedGenerator(object):
 
             for w in topic_words:
                 for s, new_pun_word_id in self.rewrite(pun_sent, delete_span_ids, w, pun_word_id):
+                    if s is None:
+                        continue
                     alter_word = alter_sent[pun_word_id]
-                    score = self.scorer.score(s, new_pun_word_id, alter_word, 2)
-                    #score = 1.
+                    score = self.scorer.score(s, new_pun_word_id, alter_word)
                     r = dict(r)
                     r.update({'inserted': w, 'output': s, 'score': score})
                     results.append(r)
@@ -270,35 +302,31 @@ class NeuralCombinerGenerator(RulebasedGenerator):
         self.model_args = model_args
 
     def load_model(self, args):
-        #args = argparse.Namespace(data=data_path, path=model_path, cpu=cpu, task='edit')
         use_cuda = torch.cuda.is_available() and not args.cpu
         task = tasks.setup_task(args)
         logger.info('loading edit model from {}'.format(args.path))
         models, model_args = utils.load_ensemble_for_inference(args.path.split(':'), task)
         return task, models[0], model_args
 
-    def make_batches(self, templates, deleted_words, related_words, src_dict, max_positions):
+    def make_batches(self, templates, deleted_words, src_dict, max_positions):
         temps = [
             tokenizer.Tokenizer.tokenize(temp, src_dict, add_if_not_exist=False, tokenize=lambda x: x).long()
             for temp in templates
         ]
         deleted = [
-            tokenizer.Tokenizer.tokenize(word, src_dict, add_if_not_exist=False, tokenize=lambda x: x, append_eos=False).long()
+            tokenizer.Tokenizer.tokenize(word, src_dict, add_if_not_exist=False, tokenize=lambda x: x).long()
             for word in deleted_words
         ]
-        related = [
-            tokenizer.Tokenizer.tokenize(word, src_dict, add_if_not_exist=False, tokenize=lambda x: x, append_eos=False).long()
-            for word in related_words
-        ]
         inputs = [
-                {'template': temp, 'deleted': dw, 'related': rw} for
-                temp, dw, rw in zip(temps, deleted, related)
+                {'template': temp, 'deleted': dw} for
+                temp, dw in zip(temps, deleted)
                 ]
         lengths = np.array([t['template'].numel() for t in inputs])
         dataset = EditDataset(inputs, lengths, src_dict, insert=self.model_args.insert, combine=self.model_args.combine)
-        itr = data.EpochBatchIterator(
+        itr = self.task.get_batch_iterator(
                 dataset=dataset,
-                max_tokens=6000,
+                max_tokens=100,
+                max_sentences=5,
                 max_positions=max_positions,
             ).next_epoch_itr(shuffle=False)
         return itr
@@ -316,22 +344,18 @@ class NeuralCombinerGenerator(RulebasedGenerator):
                 tgt_dict=tgt_dict,
                 remove_bpe=args.remove_bpe,
             )
-            #results.append('H\t{}\t{}'.format(hypo['score'], hypo_str))
-            #results.append('{}'.format(hypo_str))
             results.append(hypo_str.split())
         return results
 
     def delete_words(self, templates):
-        for sent, (del_span, del_word) in zip(sents, super().delete_words(templates)):
+        for template, (del_span, del_word_id) in zip(templates, super().delete_words(templates)):
             if del_span is None:
                 yield None, None
             else:
-                id_ = del_word
-                if id_ - 1 >= 0: #and not parsed_alter_sent[id_ - 1].pos_ in ('NOUN', 'VERB'):
-                    del_span.insert(0, id_ - 1)
-                if id_ + 1 < len(sent): #and not parsed_alter_sent[id_ + 1].pos_ in ('NOUN', 'VERB') :
-                    del_span.append(id_ + 1)
-                yield del_span, del_word
+                # TODO: don't delete content words
+                start = max(0, del_span[0] - 1)
+                end = min(len(template), del_span[0] + 2)
+                yield (start, end), del_word_id
 
     def get_topic_words(self, pun_word, del_word=None, tags=('NOUN', 'PROPN'), k=20, context=None):
         if self.model_args.insert == 'related':
@@ -339,40 +363,36 @@ class NeuralCombinerGenerator(RulebasedGenerator):
         else:
             return super().get_topic_words(pun_word, del_word=del_word, tags=tags, k=k, context=context)
 
-    def rewrite(self, pun_sent, delete_ids, insert_word, pun_word_id):
-        template = pun_sent[:delete_ids[0]] + ['<placeholder>'] + pun_sent[delete_ids[-1]+1:]
+    def rewrite(self, pun_sent, delete_span, insert_word, pun_word_id):
+        start, end = delete_span
+        template = pun_sent[:start] + ['<placeholder>'] + pun_sent[end:]
         pun_word = pun_sent[pun_word_id]
-        related = [pun_word]
         deleted = [insert_word]
         if self.model_args.insert == 'deleted' and not insert_word in self.task.source_dictionary.indices:
             logger.debug('Inserted word {} is OOV'.format(insert_word))
-            return
-        results = self._generate([template], [deleted], [related])
-        for r in results:
-            pun_ids = [i for i, w in enumerate(r) if w == pun_word]
-            if not pun_ids:
-                logger.debug('changed pun. continue.')
-                continue
-            yield r, pun_ids[0]
+            yield None, None
+        logger.debug('template: {}'.format(' '.join(template)))
+        logger.debug('deleted: {}'.format(' '.join(pun_sent[start:end])))
+        logger.debug('insert: {}'.format(' '.join(deleted)))
+        results = self._generate([template], [deleted])
+        for s in results:
+            logger.debug('generated: {}'.format(' '.join(s)))
+            r = pun_sent[:start] + s + pun_sent[end:]
+            pun_id = pun_word_id + (len(s) - (end - start))
+            yield r, pun_id
 
-    def _generate(self, templates, deleted_words, related_words):
+    def _generate(self, templates, deleted_words):
         src_dict = self.task.source_dictionary
         max_positions = self.model.max_positions()
-        insert = self.model_args.insert if self.model_args.combine != 'token' else 'none'
-        for batch in self.make_batches(templates, deleted_words, related_words, src_dict, max_positions):
+        insert = self.model_args.insert
+        for batch in self.make_batches(templates, deleted_words, src_dict, max_positions):
             src_tokens = batch['net_input']['src_tokens']
             src_lengths = batch['net_input']['src_lengths']
-            if insert != 'none':
-                src_insert = batch['net_input']['src_insert']
             if self.use_cuda:
                 src_tokens = src_tokens.cuda()
                 src_lengths = src_lengths.cuda()
-                if insert != 'none':
-                    src_insert = src_insert.cuda()
-            if insert != 'none':
-                outputs = self.generator.generate(src_tokens, src_lengths, src_insert, maxlen=int(self.args.max_len_a * src_tokens.size(1) + self.args.max_len_b))
-            else:
-                outputs = self.generator.generate(src_tokens, src_lengths, maxlen=int(self.args.max_len_a * src_tokens.size(1) + self.args.max_len_b))
+            encoder_input = {'src_tokens': src_tokens, 'src_lengths': src_lengths}
+            outputs = self.generator.generate(encoder_input, maxlen=int(self.args.max_len_a * src_tokens.size(1) + self.args.max_len_b))
             # TODO: batches
             for hypos in outputs:
                 return self.make_results(hypos, self.args)
