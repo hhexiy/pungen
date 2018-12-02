@@ -166,6 +166,33 @@ def compute_generated_pun_results(pun_dict, sentence_dict, names, scale):
     print(counts)
     #return np.array(scores) / np.array(counts), np.mean(kappa_array), np.mean(spearman_array)
 
+def load_collaborative_pun_results(infile):
+    sentence_dict = dict()
+    line_num = 0
+    with open(infile) as csvfile:
+        inf = csv.reader(csvfile, delimiter=',', quotechar='\"')
+        for line in inf:
+            line_num += 1
+            if line_num == 1:
+                header_dict = read_header(line)
+                continue
+            elems = line
+            pun = elems[header_dict['Answer.comment']]
+            difficulty = elems[header_dict['Answer.difficulty']]
+            if 'Answer.helpful' in header_dict:
+                helpful = elems[header_dict['Answer.helpful']]
+            else:
+                helpful = '0'
+            key = elems[header_dict['Input.Pun_alter']]
+            worker = elems[header_dict['WorkerId']]
+            try:
+                assert key not in sentence_dict
+            except:
+                sys.stderr.write('the key %s has appeared before!!!\n' % key)
+            sentence_dict[key] = (pun, difficulty, helpful, worker)
+    return sentence_dict
+
+
 def filter_bad_turker(turker_dict, sentence_dict, thres=0.2):
     print ('total turker numbers:', len(turker_dict))
     for tk, v in turker_dict.items():
@@ -344,6 +371,7 @@ def parse_keywords_eval_hit(infile):
                 for i in range(1,11):
                     print (line[header_dict['story'+str(i)+'_2']])
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--loader', default='load_generation_eval', help='which hit to load')
@@ -357,15 +385,21 @@ if __name__ == '__main__':
     data_loader = eval(args.loader)
     func = eval(args.task)
     
-    if args.task == 'compute_generated_pun_results':
+    if args.loader== 'load_collaborative_pun_results':
+        sentence_dict = data_loader(args.infile)
+        with open(args.outfile, 'w') as outf:
+            for k, v in sentence_dict.items():
+                outf.write(k + '\t' +  '\t'.join(v) + '\n')
+    
+    if args.loader == 'load_generation_eval':
 	    results = data_loader(args.infile, args.num_methods, args.group_perpage)
 	    print([len(elem_dict) for elem_dict in results])
 	    filter_bad_turker(results[-1], results[0], thres=0.06*args.scale)
 	    names = {'pku':0, 'retrieve':1, 'retrieve_repl':2, 'rule':3, 'neural':4, 'gold':5}
 	    func(results[1], results[0], names, args.scale) 
     
-    if args.task == 'compute_results':
+    if args.loader == 'load_analysis_eval':
 	    names = {'pun':0, 'depun':1, 'retrieved_pw':2, 'retrieved_aw':3}
-	    sentence_dict, turker_dict = load_analysis_eval(sys.argv[1])
+	    sentence_dict, turker_dict = data_loader(args.infile)
 	    filter_bad_turker(turker_dict, sentence_dict, thres=0.08*scale)
 	    print (compute_results(sentence_dict))

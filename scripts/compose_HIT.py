@@ -64,16 +64,16 @@ def compose_eval_hit(sentences, pun_word, outfile, group_per_page=2):
             header.append('order_info_'+str(i+1))
             header.append('Pun_word_'+str(i+1))
             header.append('Pun_alter_'+str(i+1))
-            for j in range(6):
+            for j in range(len(indexes)):
                 header.append('Sentence'+str(i+1)+'_'+str(j+1))
-        assert len(header) == 9*group_per_page, len(header)
+        assert len(header) == (len(indexes)+3)*group_per_page, len(header)
         outf.write(','.join(header)+'\n')
         zipped_sentences = list(zip(*sentences))
         #print(len(sentences), len(zipped_sentences))
         count = 0
         for i in instance_order:
             sents = zipped_sentences[i]
-            assert len(sents) == 6, len(sents)
+            assert len(sents) == len(indexes), len(sents)
             shuffle(indexes)
             sents = [sents[ii] for ii in indexes] 
             outf.write('-'.join(list(map(str, indexes))) + ',')
@@ -87,6 +87,37 @@ def compose_eval_hit(sentences, pun_word, outfile, group_per_page=2):
             count += 1
             #print(count)
 
+def compose_eval_human_hit(outfile, group_per_page=2, *data_dicts):
+    indexes = list(range(len(data_dicts)))
+    with open(outfile, 'w') as outf:
+        header = []
+        for i in range(group_per_page):
+            header.append('order_info_'+str(i+1))
+            header.append('Pun_alter_'+str(i+1))
+            for j in range(len(indexes)):
+                header.append('Sentence'+str(i+1)+'_'+str(j+1))
+                header.append('TurkerID'+str(i+1)+'_'+str(j+1))
+        assert len(header) == (2*len(indexes)+2)*group_per_page, len(header)
+        outf.write(','.join(header)+'\n')
+        ds0 = data_dicts[0]
+        count = 0
+        for k, v in ds0.items():
+            check = [k in dic for dic in data_dicts]
+            if sum(check) < len(data_dicts):
+                print('some dataset cannot generate words:', k)
+                continue
+            sents = [ddict[k] for ddict in data_dicts] 
+            assert len(sents) == len(indexes), len(sents)
+            shuffle(indexes)
+            sents = [','.join(sents[ii]) for ii in indexes] 
+            outf.write('-'.join(list(map(str, indexes))) + ',')
+            outf.write(k+',')
+            outf.write(','.join(sents))
+            if (count+1)%group_per_page == 0:
+                outf.write('\n')
+            else:
+                outf.write(',')
+            count += 1
 
 def load_sentences(infile):
     contents = []
@@ -94,6 +125,23 @@ def load_sentences(infile):
         for line in inf:
             contents.append('\"'+re.sub('\"', '\'\'', ' '.join(line.strip().split('\t')))+'\"')
     return contents
+
+
+def load_human(infile):
+    data_dict = dict()
+    print('loading from', infile)
+    with open(infile) as inf, MosesDetokenizer('en') as detokenize:
+        for line in inf:
+            elems = line.strip().split('\t')
+            assert (len(elems) == 2 or len(elems) == 5), len(elems)
+            key = elems[0]
+            sent = '"' + elems[1] + '"'
+            if len(elems) == 5:
+                turker = elems[-1]
+            else:
+                turker = 'placeholder'
+            data_dict[key] = (sent, turker)
+    return data_dict
 
 
 def load_json(infile, top_k=1):
@@ -218,6 +266,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
     func = eval(args.task)
     
+    
+    if args.task == 'compose_eval_human_hit':
+        names = ['turker', 'turker-pku', 'turker-surprisal', 'expert']
+        data_array = [load_human(infile) for infile in args.files]
+        compose_eval_human_hit(args.outfile, 2, *data_array)
+
     if args.task == 'compose_collaborative_pun_hit':
         filename = args.files[0]
         if 'final' in filename:
@@ -229,6 +283,7 @@ if __name__ == '__main__':
         func(data_dict, key_filter, args.outfile, args.top_k)
 
     if args.task == 'compose_eval_hit':
+        names = ['pku', 'retrieved', 'retrieve_alter', 'rule', 'neural', 'human']
         retrieve = load_json(args.files[0], top_k=args.top_k)
         retrieve_repl = load_json(args.files[1], top_k=args.top_k)
         rule = load_json(args.files[2], top_k=args.top_k)
