@@ -47,7 +47,7 @@ class RetrieveSwapGenerator(object):
             pun_sent = template.replace_keyword(pun_word)
             pun_word_id = template.keyword_id
             score = self.scorer.score(pun_sent, pun_word_id, alter_word)
-            r = {'output': pun_sent, 'score': score}
+            r = {'output': pun_sent, 'score': score, 'template-id': template.id}
             results.append(r)
         return results
 
@@ -69,7 +69,7 @@ class RetrieveGenerator(object):
             pun_sent = template.tokens
             pun_word_id = template.keyword_id
             score = self.scorer.score(pun_sent, pun_word_id, alter_word)
-            r = {'output': pun_sent, 'score': score}
+            r = {'output': pun_sent, 'score': score, 'template-id': template.id}
             results.append(r)
         return results
 
@@ -149,7 +149,7 @@ class RulebasedGenerator(object):
             pun_word_id = template.keyword_id
 
             r = {}
-            r['template-id'] = i
+            r['template-id'] = template.id
             r['template'] = alter_sent
             r['retrieved'] = ' '.join(list(pun_sent))
 

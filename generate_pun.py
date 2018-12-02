@@ -100,6 +100,11 @@ def main(args):
         generator = RetrieveSwapGenerator(retriever, scorer)
 
     puns = json.load(open(args.pun_words))
+    # Uniq
+    d = {}
+    for e in puns:
+        d[e['pun_word']] = e
+    puns = d.values()
     # Sorting by quality of pun words
     dmeta = fuzzy.DMetaphone()
     homophone = lambda x, y: float(dmeta(x)[0] == dmeta(y)[0])
@@ -110,7 +115,7 @@ def main(args):
                                        freq(e['pun_word'], e['alter_word'])),
                   reverse=True)
     num_success = 0
-    for example in puns:
+    for example in puns[100:]:
         pun_word, alter_word = example['pun_word'], example['alter_word']
         logger.info('-'*50)
         logger.info('INPUT: alter={} pun={}'.format(alter_word, pun_word))

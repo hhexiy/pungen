@@ -14,7 +14,8 @@ logger = logging.getLogger('pungen')
 
 @total_ordering
 class Template(object):
-    def __init__(self, tokens, keyword):
+    def __init__(self, tokens, keyword, id_):
+        self.id = int(id_)
         self.tokens = tokens
         self.keyword_positions = [i for i, w in enumerate(tokens) if w == keyword]
         self.num_key = len(self.keyword_positions)
@@ -90,7 +91,7 @@ class Retriever(object):
 
     def retrieve_pun_template(self, alter_word, len_threshold=10, pos_threshold=0.5, num_cands=500, num_templates=None):
         ids = self.query(alter_word, num_cands)
-        templates = [Template(self.docs[id_].split(), alter_word) for id_ in ids]
+        templates = [Template(self.docs[id_].split(), alter_word, id_) for id_ in ids]
         templates = [t for t in templates if t.num_key > 0 and len(t.tokens) > len_threshold]
         if len(templates) == 0:
             logger.info('FAIL: no retrieved sentence contains the keyword {}.'.format(alter_word))
