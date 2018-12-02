@@ -81,8 +81,8 @@ def load_generation_eval(infile, num_methods, group_per_page):
                 pun_alter_key = elems[header_dict[key]]
                 if pun_alter_key not in pun_dict:
                     pun_dict[pun_alter_key] = [{} for i in range(num_methods)]
-                else:
-                    print(pun_alter_key, "has already be in the corpora!")
+                #else:
+                #    print(pun_alter_key, "has already be in the corpora!")
                 key = 'Input.order_info_'+str(i) 
                 assert key in header_dict, key
                 order_info = elems[header_dict[key]].strip().split('-')
@@ -106,10 +106,6 @@ def load_generation_eval(infile, num_methods, group_per_page):
                             print('loading data! Abnormal data:', j, temp_results[j], pun_dict[pun_alter_key][j][sentence], counter)
                             #sentence = '_'.join([sentence, str(j)])
                             counter += 1
-                            '''if sentence not in pun_dict[pun_alter_key][j]:
-                                pun_dict[pun_alter_key][j][sentence] = []
-                            else:
-                                assert len(pun_dict[pun_alter_key][j][sentence]) < 53                            '''
                     pun_dict[pun_alter_key][j][sentence].append(score)
                     if sentence not in sentence_dict:
                         sentence_dict[sentence] = [sentence]
@@ -122,15 +118,15 @@ def load_generation_eval(infile, num_methods, group_per_page):
 def compute_generated_pun_results(pun_dict, sentence_dict, names, scale):
     print ('total pun numbers:', len(pun_dict))
     print ('total annotation numbers:', len(sentence_dict))
-    names = {0:'pku', 1:'retrieve', 2:'retrieve_repl', 3:'rule', 4:'neural', 5:'gold'}
     scores = [[] for i in range(len(names))]
     counts = [0] * len(names)
     annotations = []
     sentences_with_scores = []
     key_with_score = []
     for key, value in pun_dict.items():
-        assert len(value) == 6, len(value)
+        assert len(value) == len(names), len(value)
         #temp_scores = [[] for i in range(len(names))]
+        #print(key, value)
         for ii, sent_dic in enumerate(value):
             temp_scores = []
             #print(len(sent_dic))
@@ -138,16 +134,17 @@ def compute_generated_pun_results(pun_dict, sentence_dict, names, scale):
                 assert k in sentence_dict, k
                 if ii < len(names) -1 and len(sentence_dict[k]) > 6:
                     print('abnormal sentences!!', ii, sentence_dict[k], v)
+                #normalized_score = list(map(lambda x: x>1, sentence_dict[k][1:]))
+                #score = (np.mean(normalized_score))
                 score = (np.sum(sentence_dict[k][1:])/np.count_nonzero(sentence_dict[k][1:])) if np.count_nonzero(sentence_dict[k][1:]) > 0 else 0
                 counts[ii] += len(sentence_dict[k][1:]) - np.count_nonzero(sentence_dict[k][1:])
                 sentences_with_scores.append((k, key, names[ii], score))
                 temp_scores.append(score)
             # this one can be changed to different strategies.
+            #print(len(temp_scores))
             scores[ii].append(np.max(temp_scores))
-        key_with_score.append((key, scores[0][-1]+scores[3][-1]))
-            #annotations.append(value)
-    #annotations = np.array(annotations)
-    #print(annotations.shape)
+        #print(np.asarray(scores).shape)
+        key_with_score.append((key, sum(np.asarray(scores)[(0,3,4),-1]), np.asarray(scores)[:,-1]))
     '''kappa_array, spearman_array = [], []
     for i in range(annotations.shape[1]):
         for j in range(i+1, annotations.shape[1]):
@@ -156,10 +153,10 @@ def compute_generated_pun_results(pun_dict, sentence_dict, names, scale):
     sorted_sents = sorted(sentences_with_scores, key=itemgetter(0))
     for item in sorted_sents:
         print('\t'.join(list(map(str, item))))
-    '''
     sorted_key = sorted(key_with_score, key=itemgetter(1), reverse=True)
-    for item in sorted_key:
+    for item in sorted_key:  #key_with_score: #sorted_key:
         print('\t'.join(list(map(str, item))))
+    '''
     for i in range(len(scores)-1):
         print(i, [(sum(np.array(sc)<np.array(scores[i])), sum(np.array(sc)>np.array(scores[i]))) for sc in scores[i+1:]])
     print([np.mean(sc)/scale for sc in scores])
@@ -392,12 +389,17 @@ if __name__ == '__main__':
                 outf.write(k + '\t' +  '\t'.join(v) + '\n')
     
     if args.loader == 'load_generation_eval':
-	    results = data_loader(args.infile, args.num_methods, args.group_perpage)
-	    print([len(elem_dict) for elem_dict in results])
-	    filter_bad_turker(results[-1], results[0], thres=0.06*args.scale)
-	    names = {'pku':0, 'retrieve':1, 'retrieve_repl':2, 'rule':3, 'neural':4, 'gold':5}
-	    func(results[1], results[0], names, args.scale) 
-    
+        results = data_loader(args.infile, args.num_methods, args.group_perpage)
+        print([len(elem_dict) for elem_dict in results])
+        filter_bad_turker(results[-1], results[0], thres=0.08*args.scale)
+        if args.num_methods == 6:
+            names = {0:'pku', 1:'retrieve', 2:'retrieve_repl', 3:'rule', 4:'neural', 5:'gold'}
+        elif args.num_methods == 4:
+            names = {0:'turker', 1:'turker_pku', 2:'turker_ours', 3:'expert'}
+        else:
+            raise NotImplementedError
+        func(results[1], results[0], names, args.scale) 
+
     if args.loader == 'load_analysis_eval':
 	    names = {'pun':0, 'depun':1, 'retrieved_pw':2, 'retrieved_aw':3}
 	    sentence_dict, turker_dict = data_loader(args.infile)
