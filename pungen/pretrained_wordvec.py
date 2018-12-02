@@ -26,8 +26,9 @@ class Glove(object):
             return cls(obj['vectors'], d)
 
     @classmethod
-    def from_file(cls, vector_file, vocab_file, vec_size=300):
-        d = Dictionary.load(vocab_file)
+    def from_file(cls, vector_file, vocab, vec_size=300):
+        #d = Dictionary.load(vocab_file)
+        d = vocab
 
         vectors = np.ones((len(d), vec_size), dtype=np.float32)
         idx_to_token = []
@@ -47,6 +48,11 @@ class Glove(object):
                     idx_to_token.append(word)
 
         return cls(vectors, d)
+
+    def cosine_similarity(self, words1, words2):
+        embeddings1 = [self.vectors[self.vocab.index(w)] for w in words1]
+        embeddings2 = [self.vectors[self.vocab.index(w)] for w in words2]
+        return cosine_similarity(embeddings1, embeddings2)
 
     def similarity_scores(self, word):
         word_id = self.vocab.index(word)

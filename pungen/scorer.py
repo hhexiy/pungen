@@ -4,9 +4,13 @@ import pickle as pkl
 import torch
 import numpy as np
 from collections import defaultdict
+import itertools
+from scipy.stats import entropy
 
 from fairseq import data, options, tasks, utils, tokenizer
 from fairseq.sequence_scorer import SequenceScorer
+import mxnet as mx
+import gluonnlp as gnlp
 
 import logging
 logger = logging.getLogger('pungen')
@@ -165,17 +169,30 @@ class SurprisalScorer(PunScorer):
 
 
 class GoodmanScoreCaculator(object):
-    def __init__(self, um, skipgram, words, meanings):
+    def __init__(self, um, skipgram, words, meanings, glove):
         self.words = words
         self.meanings = meanings
         _words = list(set(words + meanings))
         self.unigram_logprobs = {w: um._score(w) for w in _words}
         self.unigram_probs = {w: np.exp(s) for w, s in self.unigram_logprobs.items()}
         self.skipgram_probs = self.skipgram_scores(skipgram, _words, meanings)
+        #self.skipgram_probs = self.glove_scores(glove, _words, meanings)
         self.meaning_prior = self.meaning_prior()
+
+    def glove_scores(self, glove, words, meanings):
+        n = len(words)
+        scores = defaultdict(dict)
+        _scores = glove.cosine_similarity(meanings, words)
+        print(_scores.shape)
+        for i, w in enumerate(words):
+            for j, m in enumerate(meanings):
+                scores[w][m] = np.exp(_scores[j][i] * 0.3 + self.unigram_logprobs[w])
+                assert scores[w][m] < 1
+        return scores
 
     def skipgram_scores(self, skipgram, words, meanings):
         n = len(words)
+        # p(w | m)
         scores = defaultdict(dict)
         # p(oword | iword)
         _scores = skipgram.score(iwords=meanings, owords=words, lemma=True)
@@ -241,24 +258,42 @@ class GoodmanScoreCaculator(object):
         return entropy
 
     def kl_div(self, p1, p2):
+        p1 = p1 / np.sum(p1)
+        p2 = p2 / np.sum(p2)
         return np.sum([p1_ * np.log(p1_ / p2_) for p1_, p2_ in zip(p1, p2)])
 
     def distinctiveness(self):
         meanings = self.meanings
         sent = self.words
         kl_divs = []
-        for w in sent:
+        for i, w in enumerate(sent):
             p1 = [self._word_likelihood(w, meanings[0], f) for f in (0, 1)]
             p2 = [self._word_likelihood(w, meanings[1], f) for f in (0, 1)]
             d = self.kl_div(p1, p2) + self.kl_div(p2, p1)
             kl_divs.append(d)
         return np.sum(kl_divs)
 
+    def distinctiveness_enum(self):
+        words, meanings = self.words, self.meanings
+        combinations = ["".join(seq) for seq in itertools.product("01", repeat=len(words))]
+        dist_ma = np.zeros(len(combinations))
+        dist_mb = np.zeros(len(combinations))
+        for j, fvec in enumerate(combinations):
+            fvec = [int(i) for i in list(fvec)]
+            logp_w_given_m_f = np.array([0.0, 0.0])
+            for i, f in enumerate(fvec):
+                logp_w_given_m_f[0] += np.log(self._word_likelihood(words[i], meanings[0], f))
+                logp_w_given_m_f[1] += np.log(self._word_likelihood(words[i], meanings[1], f))
+            dist_ma[j] = np.exp(logp_w_given_m_f[0])
+            dist_mb[j] = np.exp(logp_w_given_m_f[1])
+        distinctiveness = entropy(dist_ma, dist_mb) +  entropy(dist_mb, dist_ma)
+        return distinctiveness
 
 class GoodmanScorer(PunScorer):
-    def __init__(self, um, skipgram):
+    def __init__(self, um, skipgram, glove=None):
         self.um = um
         self.skipgram = skipgram
+        self.glove = glove
 
     def is_content(self, word, tag):
         if not word in STOP_WORDS and \
@@ -282,7 +317,7 @@ class GoodmanScorer(PunScorer):
         parsed_sent = nlp(' '.join(pun_sent))
         content_words = [get_lemma(x, parsed=True) for x in parsed_sent if self.is_content(x.text, x.tag_)]
 
-        calculator = GoodmanScoreCaculator(self.um, self.skipgram, content_words, meanings)
+        calculator = GoodmanScoreCaculator(self.um, self.skipgram, content_words, meanings, self.glove)
         ambiguity = calculator.ambiguity()
         distinctiveness = calculator.distinctiveness()
 

@@ -12,10 +12,13 @@ import pickle as pkl
 import json
 import matplotlib.pyplot as plt
 
+from fairseq.data.dictionary import Dictionary
+
 from pungen.scorer import LMScorer, SurprisalScorer, UnigramModel, GoodmanScorer
 from pungen.options import add_scorer_args, add_generic_args
 from pungen.utils import logging_config, get_spacy_nlp
 from pungen.wordvec.generate import SkipGram
+from pungen.pretrained_wordvec import Glove
 
 import logging
 logger = logging.getLogger('pungen')
@@ -97,15 +100,28 @@ def score_examples(args):
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
 
-    scorers = [SurprisalScorer(lm, unigram_model, local_window_size=args.local_window_size),
-               GoodmanScorer(unigram_model, skipgram)]
-
     candidates = parse_human_eval_data(args.human_eval, args.tokenized)
+
+    #vocab = build_vocab(candidates)
+    #glove = Glove.from_file('/u/scr/nlp/data/glove_vecs/glove.840B.300d.txt', vocab)
+    glove = None
+
+    scorers = [SurprisalScorer(lm, unigram_model, local_window_size=args.local_window_size),
+               GoodmanScorer(unigram_model, skipgram, glove)]
+    #scorers = [GoodmanScorer(unigram_model, skipgram, glove)]
+
     for c in candidates:
         for scorer in scorers:
             scores = scorer.analyze(c['pun_sent'], c['pun_word_id'], c['alter_word'])
             c['scores'].update(scores)
     return candidates
+
+def build_vocab(candidates):
+    d = Dictionary()
+    for c in candidates:
+        for w in c['pun_sent']:
+            d.add_symbol(w)
+    return d
 
 def main(args):
     json.dump(vars(args), open(os.path.join(args.outdir, 'config.json'), 'w'))
@@ -120,8 +136,8 @@ def main(args):
     # Correlation
     if args.analysis:
         all_types = tuple(set([c['type'] for c in candidates]))
-        #for types in [('pun', 'depun'), ('pun',), all_types]:
-        for types in [('retrieve', 'retrieve-repl')]:
+        for types in [('pun', 'depun'), ('pun',), ('pun', 'retrieved_pw'), all_types]:
+        #for types in [('retrieve', 'retrieve-repl')]:
             _candidates = [c for c in candidates if c['type'] in types]
             human_scores = [c['scores']['human'] for c in _candidates]
             logger.info('correlation for {} sentences of types {}'.format(len(_candidates), str(types)))
@@ -140,6 +156,7 @@ def main(args):
 
     # Linear regression
     features = args.features
+    scores = [c['scores'] for c in candidates]
     model, r2, feature_stats = linear_regression(scores, features)
     pkl.dump(model, open(os.path.join(args.outdir, 'lr_model.pkl'), 'wb'))
     pkl.dump(features, open(os.path.join(args.outdir, 'features.pkl'), 'wb'))
