@@ -109,7 +109,7 @@ def compose_eval_human_hit(outfile, group_per_page=2, *data_dicts):
             sents = [ddict[k] for ddict in data_dicts] 
             assert len(sents) == len(indexes), len(sents)
             shuffle(indexes)
-            sents = [','.join(sents[ii]) for ii in indexes] 
+            sents = [','.join(sents[ii]).lower() for ii in indexes] 
             outf.write('-'.join(list(map(str, indexes))) + ',')
             outf.write(k+',')
             outf.write(','.join(sents))
@@ -135,7 +135,7 @@ def load_human(infile):
             elems = line.strip().split('\t')
             assert (len(elems) == 2 or len(elems) == 5), len(elems)
             key = elems[0]
-            sent = '"' + elems[1] + '"'
+            sent = '"' + re.sub('\"', '\'\'', detokenize(elems[1].split())) + '"'
             if len(elems) == 5:
                 turker = elems[-1]
             else:
@@ -251,9 +251,9 @@ def load_key_filter(fkeyfilter, top=20):
     data_array = []
     with open(fkeyfilter) as inf:
         for line in inf:
-            elems = line.strip().split()
-            data_array.append(elems)
-    return [tuple(key.split('-')) for key, score in data_array[:top]]
+            elems = line.strip().split('\t')
+            data_array.append(elems[0])
+    return [tuple(key.split('-')) for key in data_array[:top]]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -265,8 +265,14 @@ if __name__ == '__main__':
     parser.add_argument('--outfile', default='test.csv', help='output file for the retrieved sentences')
     args = parser.parse_args()
     func = eval(args.task)
-    
-    
+   
+    # quick hack to get keywords from He's file
+    '''data_dict = load_json(args.files[0])
+    for k, v in data_dict.items():
+        print(k[0])
+        print(k[1])
+    exit(0)
+    '''
     if args.task == 'compose_eval_human_hit':
         names = ['turker', 'turker-pku', 'turker-surprisal', 'expert']
         data_array = [load_human(infile) for infile in args.files]
