@@ -8,7 +8,7 @@ import fuzzy
 from fairseq import options
 
 from pungen.retriever import Retriever
-from pungen.generator import SkipGram, RulebasedGenerator, NeuralCombinerGenerator, RetrieveGenerator, RetrieveSwapGenerator
+from pungen.generator import SkipGram, RulebasedGenerator, NeuralCombinerGenerator, RetrieveGenerator, RetrieveSwapGenerator, KeywordsGenerator
 from pungen.scorer import LMScorer, SurprisalScorer, UnigramModel, RandomScorer, GoodmanScorer, LearnedScorer
 from pungen.type import TypeRecognizer
 from pungen.options import add_scorer_args, add_editor_args, add_retriever_args, add_generic_args, add_type_checker_args
@@ -68,7 +68,7 @@ def main(args):
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     retriever = Retriever(args.doc_file, path=args.retriever_model, overwrite=args.overwrite_retriever_model)
 
-    if args.system.startswith('rule') or args.scorer in ('goodman', 'learned'):
+    if args.system.startswith('rule') or args.system == 'keywords' or args.scorer in ('goodman', 'learned'):
         skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
     else:
         skipgram = None
@@ -98,6 +98,8 @@ def main(args):
         generator = RetrieveGenerator(retriever, scorer)
     elif args.system == 'retrieve+swap':
         generator = RetrieveSwapGenerator(retriever, scorer)
+    elif args.system == 'keywords':
+        generator = KeywordsGenerator(retriever, skipgram)
 
     puns = json.load(open(args.pun_words))
     # Uniq
@@ -115,7 +117,8 @@ def main(args):
                                        freq(e['pun_word'], e['alter_word'])),
                   reverse=True)
     num_success = 0
-    for example in puns[100:]:
+    processed_examples = []
+    for example in puns:
         pun_word, alter_word = example['pun_word'], example['alter_word']
         logger.info('-'*50)
         logger.info('INPUT: alter={} pun={}'.format(alter_word, pun_word))
@@ -137,11 +140,12 @@ def main(args):
         for r in results[:3]:
             logger.info('{:<8.2f}{}'.format(r['score'], ' '.join(r['output'])))
 
+        processed_examples.append(example)
         num_success += 1
         if args.max_num_examples > 0 and num_success >= args.max_num_examples:
             break
 
-    json.dump(puns, open(os.path.join(args.outdir, 'results.json'), 'w'))
+    json.dump(processed_examples, open(os.path.join(args.outdir, 'results.json'), 'w'))
 
 
 if __name__ == '__main__':

@@ -4,13 +4,14 @@ given by humans.
 
 import os
 import argparse
-from scipy.stats import spearmanr
+from scipy.stats import spearmanr, zscore
 from sklearn.linear_model import LinearRegression
 from sklearn.feature_selection import f_regression
 import numpy as np
 import pickle as pkl
 import json
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 from fairseq.data.dictionary import Dictionary
 
@@ -77,6 +78,7 @@ def parse_human_eval_data(path, tokenized):
                 sent = ss[0].split()
             else:
                 sent = [x.text for x in nlp(ss[0])]
+            sent = [x.lower() for x in sent]
             pun_word, alter_word = ss[1].split('-')
             method = ss[2]
             score = float(ss[3])
@@ -123,6 +125,17 @@ def build_vocab(candidates):
             d.add_symbol(w)
     return d
 
+def compute_stats(candidates):
+    results_by_type = defaultdict(lambda : defaultdict(float))
+    for c in candidates:
+        results_by_type[c['type']]['count'] += 1
+        results_by_type[c['type']]['score'] += c['scores']['human']
+    logger.info('Stats')
+    str_format = '{type:<10s}{count:10d}{score:10.2f}'
+    for k, v in results_by_type.items():
+        logger.info(str_format.format(type=k, count=int(v['count']), score=v['score'] / v['count']))
+
+
 def main(args):
     json.dump(vars(args), open(os.path.join(args.outdir, 'config.json'), 'w'))
 
@@ -133,10 +146,26 @@ def main(args):
     else:
         candidates = json.load(open(filename))
 
+    candidates = [c for c in candidates if c['type'] in ('pun', 'depun', 'retrieved_pw', 'retrieved_aw', 'nonpun')]
+
+    compute_stats(candidates)
+
+    # Normalization, cutoff 2-\sigma
+    features = candidates[0]['scores'].keys()
+    for feat in features:
+        if feat != 'human':
+            _scores = zscore([c['scores'][feat] for c in candidates])
+            for _score, c in zip(_scores, candidates):
+                if _score > 0:
+                    _score = min(2, _score)
+                elif _score < 0:
+                    _score = max(-2, _score)
+                c['scores'][feat] = _score
+
     # Correlation
     if args.analysis:
         all_types = tuple(set([c['type'] for c in candidates]))
-        for types in [('pun', 'depun'), ('pun',), ('pun', 'retrieved_pw'), all_types]:
+        for types in [('pun',), ('pun', 'depun'), ('pun', 'nonpun', 'retrieved_pw', 'retrieved_aw')]:
         #for types in [('retrieve', 'retrieve-repl')]:
             _candidates = [c for c in candidates if c['type'] in types]
             human_scores = [c['scores']['human'] for c in _candidates]

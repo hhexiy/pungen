@@ -146,15 +146,20 @@ class SurprisalScorer(PunScorer):
 
         alter_sent = list(pun_sent)
         alter_sent[pun_word_id] = alter_word
+        #unk_sent = list(pun_sent)
+        #unk_sent[pun_word_id] = '<unk>'
 
         local_start, local_end = self._get_window(pun_word_id, self.local_window_size)
         local_pun_sent = pun_sent[local_start:local_end]
         local_alter_sent = alter_sent[local_start:local_end]
+        #local_unk_sent = unk_sent[local_start:local_end]
 
-        sents = [alter_sent, pun_sent, local_alter_sent, local_pun_sent]
+        sents = [alter_sent, pun_sent, local_alter_sent, local_pun_sent] #, unk_sent, local_unk_sent]
         scores = self.lm.score_sents(sents, tokenize=lambda x: x)
         global_surprisal = np.sum(scores[0]) - np.sum(scores[1])
+        #global_unk_surprisal = np.sum(scores[0]) - np.sum(scores[4])
         local_surprisal = np.sum(scores[2]) - np.sum(scores[3])
+        #local_unk_surprisal = np.sum(scores[2]) - np.sum(scores[5])
         grammar = self.grammaticality_score(pun_sent, scores[1])
 
         # ratio
@@ -163,7 +168,9 @@ class SurprisalScorer(PunScorer):
         else:
             r = local_surprisal / global_surprisal  # larger is better
 
-        res = {'grammar': grammar, 'ratio': r}
+        res = {'grammar': grammar, 'ratio': r,
+               'local': local_surprisal, 'global': global_surprisal,
+              }
         res = {k: float(v) for k, v in res.items()}
         return res
 

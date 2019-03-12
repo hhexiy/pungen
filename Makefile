@@ -135,7 +135,8 @@ human-corr:
 	python eval_scoring_func.py --human-eval data/funniness_eval/$(data)_pun_scores.txt \
 		--lm-path models/wikitext/wiki103.pt --word-counts-path models/wikitext/dict.txt \
 	--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt --outdir results/human-eval/$(data) \
-	--features grammar ratio ambiguity distinctiveness --analysis --ignore-cache  
+	--features grammar ratio ambiguity distinctiveness --analysis #--ignore-cache  
+	#--features grammar ratio ambiguity distinctiveness --analysis --ignore-cache  
 
 prepare-pun-data:
 	PYTHONPATH=. python scripts/make_pun_src_tgt_files.py --pun-data data/semeval/$(type)/dev.json --output data/pun/ --dev-frac 0.1
