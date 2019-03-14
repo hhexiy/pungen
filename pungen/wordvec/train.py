@@ -70,7 +70,7 @@ def train(args):
     vocab_size = len(d)
     weights = wf if args.weights else None
     if not os.path.isdir(args.save_dir):
-        os.mkdir(args.save_dir)
+        os.makedirs(args.save_dir)
     model = Word2Vec(vocab_size=vocab_size, embedding_size=args.e_dim)
     modelpath = os.path.join(args.save_dir, '{}.pt'.format(args.name))
     sgns = SGNS(embedding=model, vocab_size=vocab_size, n_negs=args.n_negs, weights=weights, pad=d.unk())

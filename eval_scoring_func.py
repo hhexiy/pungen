@@ -1,17 +1,16 @@
-"""Compute the correlation of scorers given by our scoring function and those
+"""Compute the correlation of funniness scorers given by a scoring function and those
 given by humans.
 """
 
 import os
 import argparse
+import json
+import numpy as np
+import matplotlib.pyplot as plt
+from collections import defaultdict
 from scipy.stats import spearmanr, zscore
 from sklearn.linear_model import LinearRegression
 from sklearn.feature_selection import f_regression
-import numpy as np
-import pickle as pkl
-import json
-import matplotlib.pyplot as plt
-from collections import defaultdict
 
 from fairseq.data.dictionary import Dictionary
 
@@ -166,7 +165,6 @@ def main(args):
     if args.analysis:
         all_types = tuple(set([c['type'] for c in candidates]))
         for types in [('pun',), ('pun', 'depun'), ('pun', 'nonpun', 'retrieved_pw', 'retrieved_aw')]:
-        #for types in [('retrieve', 'retrieve-repl')]:
             _candidates = [c for c in candidates if c['type'] in types]
             human_scores = [c['scores']['human'] for c in _candidates]
             logger.info('correlation for {} sentences of types {}'.format(len(_candidates), str(types)))
@@ -181,14 +179,12 @@ def main(args):
     scores = [c['scores'] for c in candidates]
 
     # Plot
-    plot(scores, x_features=args.features, y_features=['human'])
+    #plot(scores, x_features=args.features, y_features=['human'])
 
     # Linear regression
     features = args.features
     scores = [c['scores'] for c in candidates]
     model, r2, feature_stats = linear_regression(scores, features)
-    pkl.dump(model, open(os.path.join(args.outdir, 'lr_model.pkl'), 'wb'))
-    pkl.dump(features, open(os.path.join(args.outdir, 'features.pkl'), 'wb'))
 
     logger.info('linear regression')
     for name, stats in feature_stats.items():

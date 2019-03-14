@@ -3,22 +3,6 @@ src=title
 tgt=story
 glove=/u/scr/nlp/data/glove_vecs/glove.840B.300d.txt
 
-preprocess-txt-roc:
-	for split in train valid test; do \
-		python scripts/make_src_tgt_files.py \
-		-s data/roc/raw/$$split.txt \
-		-k data/roc/raw/$$split.key \
-		--num-key 2 \
-		-o data/$(data)/$$split; \
-	done
-
-preprocess-txt-reddit:
-	for split in train dev test; do \
-		python scripts/make_src_tgt_files.py \
-		--input Datasets/writingPrompts/valid.wp_target --data reddit \
-		--output data/$(data) --filename $$split; \
-	done
-
 skipgram-preprocess:
 	python -m pungen.wordvec.preprocess --data-dir data/$(gdata)/skipgram \
 		--corpus data/$(gdata)/raw/train.txt \
@@ -50,40 +34,11 @@ train:
 	--save-dir models/$(gdata)/$(data)/$(ckpt) --no-progress-bar --log-interval 5000 \
 	#--pretrained-lm models/wikitext/wiki103.pt --mixing-weights learned --fusion-type $(fusion)
 
-preprocess-test:
-	python src/preprocess.py --source-lang src --target-lang tgt \
-		--destdir data/$(data)/bin/data --thresholdtgt 20 --thresholdsrc 20 \
-		--srcdict data/book/kw-sent/bin/data/dict.src.txt \
-		--tgtdict data/book/kw-sent/bin/data/dict.tgt.txt \
-		--testpref data/$(data)/gen-kw-lm
-
-subset=test
-test:
-	python src/generate.py data/$(test_data)/bin/data --gen-subset $(subset) \
-	--path models/$(model_data)/$(ckpt)/checkpoint_best.pt --beam 5 --nbest 5 --unkpen 100 \
-	--sampling --sampling-temperature 0.3
-
-interact:
-	python src/interactive.py data/$(data)/bin/data \
-		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
-		--beam 20 --nbest 20 --unkpen 100 --normal \
-		#--sampling --sampling-temperature 0.2 \
-		#--skipgram-model models/wordvec/sgns-e15.pt --skipgram-data data/wordvec \
-		#--lm models/wikitext/wiki103.pt
-
-lm-score:
-	python src/lm_score.py data/$(data)/bin/data \
-		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
-		--beam 10 --nbest 10 --unkpen 100 --normal \
-
 analyze:
 	python scripts/aggregate_results.py --model-outputs logs/$(data)/lstm.test.log logs/$(data)/lstm-wiki-input.test.log --model-names lstm lstm-wiki --output logs/$(data)/all.test.agg
 
 human-eval:
 	python scripts/human_eval.py --model-outputs logs/$(data)/lstm-wiki-input.test.log --num 1
-
-retrieve:
-	python src/retriever.py --doc-file data/$(data)/raw/sent.txt --lm-path models/wikitext --path models/retriever-1b.pkl --skipgram-path data/onebillion/wordvec/dict.txt models/onebillion/wordvec/sgns-e10.pt --keywords data/manual/pun.txt
 
 system=rule
 gdata=bookcorpus
@@ -104,11 +59,6 @@ generate-pun:
 		--learned-scorer-weights results/score-eval/lr_model.pkl \
 		--learned-scorer-features results/score-eval/features.pkl \
 		--max-num-examples 100
-
-neural-generate:
-	python src/generator.py data/$(data)/bin/data \
-		--path models/$(data)/$(ckpt)/checkpoint_best.pt \
-		--beam 50 --nbest 3 --unkpen 100 --insert $(insert)
 
 semeval_dir=semeval2017_task7/data/test/subtask3-
 type=hetero
@@ -132,24 +82,14 @@ build-retriever:
 
 
 human-corr:
-	python eval_scoring_func.py --human-eval data/funniness_eval/$(data)_pun_scores.txt \
+	python eval_scoring_func.py --human-eval data/funniness_annotation/$(data)_pun_scores.txt \
 		--lm-path models/wikitext/wiki103.pt --word-counts-path models/wikitext/dict.txt \
-	--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt --outdir results/human-eval/$(data) \
-	--features grammar ratio ambiguity distinctiveness --analysis #--ignore-cache  
+	--skipgram-model data/$(gdata)/skipgram/dict.txt models/$(gdata)/skipgram/sgns-e15.pt --outdir results/pun-analysis/$(data) \
+	--features grammar ratio ambiguity distinctiveness --analysis --ignore-cache  
 	#--features grammar ratio ambiguity distinctiveness --analysis --ignore-cache  
 
 prepare-pun-data:
 	PYTHONPATH=. python scripts/make_pun_src_tgt_files.py --pun-data data/semeval/$(type)/dev.json --output data/pun/ --dev-frac 0.1
-
-train-pun:
-	python train.py data/$(data)/bin/data -a $(model) --source-lang src --target-lang tgt \
-	--criterion cross_entropy \
-	--encoder lstm --decoder-attention True \
-	--encoder-embed-path $(glove) --encoder-embed-dim 300 --decoder-embed-path $(glove) --decoder-embed-dim 300 \
-	--optimizer adagrad --lr 0.01 --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 --clip-norm 5 \
-	--max-epoch 50 --max-tokens 6000 \
-	--save-dir models/$(data)/$(ckpt) --no-progress-bar --log-interval 1 --no-epoch-checkpoints \
-	--pretrained-lm models/wikitext/wiki103.pt --mixing-weights learned --fusion-type $(fusion)
 
 split-data:
 	python scripts/split.py -i data/$(gdata)/raw/sent.tokenized.parsed.txt -o data/$(gdata)/raw --split 0.9 0.1 --split-names train valid --shuffle

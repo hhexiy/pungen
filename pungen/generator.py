@@ -381,10 +381,7 @@ class NeuralCombinerGenerator(RulebasedGenerator):
                 yield (start, end), del_word_id
 
     def get_topic_words(self, pun_word, del_word=None, tags=('NOUN', 'PROPN'), k=20, context=None):
-        if self.model_args.insert == 'related':
-            return ['dummy']
-        else:
-            return super().get_topic_words(pun_word, del_word=del_word, tags=tags, k=k, context=context)
+        return super().get_topic_words(pun_word, del_word=del_word, tags=tags, k=k, context=context)
 
     def rewrite(self, pun_sent, delete_span, insert_word, pun_word_id):
         start, end = delete_span

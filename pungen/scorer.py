@@ -9,8 +9,6 @@ from scipy.stats import entropy
 
 from fairseq import data, options, tasks, utils, tokenizer
 from fairseq.sequence_scorer import SequenceScorer
-import mxnet as mx
-import gluonnlp as gnlp
 
 import logging
 logger = logging.getLogger('pungen')

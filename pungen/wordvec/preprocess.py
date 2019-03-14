@@ -8,7 +8,7 @@ import numpy as np
 
 from fairseq.data.dictionary import Dictionary
 
-from pungen.utils import sentence_iterator, get_lemma, Word
+from pungen.utils import sentence_iterator
 
 
 def parse_args():
@@ -31,6 +31,11 @@ class Preprocess(object):
         self.min_dist = min_dist
         self.data_dir = data_dir
 
+    def get_lemma(self, w):
+        # w: (token, lemma, tag)
+        token, lemma, tag = w
+        return token if lemma == '-PRON-' else lemma
+
     def skipgram(self, sentence, i):
         iword = sentence[i]
         left = sentence[max(i - self.max_dist, 0) : max(i - self.min_dist, 0)]
@@ -49,7 +54,7 @@ class Preprocess(object):
             for step, line in enumerate(sentence_iterator(filepath)):
                 if not step % 1000:
                     print("working on {}kth line".format(step // 1000), end='\r')
-                tokens = [get_lemma(w, Word) for w in line]
+                tokens = [self.get_lemma(w) for w in line]
                 for tok in tokens:
                     d.add_symbol(tok)
             d.finalize(threshold=threshold, nwords=max_vocab)
@@ -66,7 +71,7 @@ class Preprocess(object):
         for step, line in enumerate(sentence_iterator(filepath)):
             if not step % 1000:
                 print("working on {}kth line".format(step // 1000), end='\r')
-            tokens = [get_lemma(w, Word) for w in line]
+            tokens = [self.get_lemma(w) for w in line]
             sent = [self.vocab.index(w) for w in tokens]
             if len(sent) <= (self.max_dist - self.min_dist + 1):
                 continue
