@@ -20,7 +20,9 @@ rm models/wikitext/model
 
 ## Training
 ### Word relatedness model
-We approximate relatedness between a pair of words with a long-distance skip-gram model trained on bookcorpus sentences.
+We approximate relatedness between a pair of words with a long-distance skip-gram model trained on BookCorpus sentences.
+The original BookCorpus data is parsed by `scripts/preprocess_raw_text.py`
+and you can see the sample file in `sample_data/bookcorpus/raw/train.txt`.
 
 Preprocess bookcorpus data:
 ```
@@ -63,7 +65,7 @@ python -m pungen.train data/bookcorpus/edit/bin/data -a lstm \
     --criterion cross_entropy \
     --encoder lstm --decoder-attention True \
     --optimizer adagrad --lr 0.01 --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 \
-    --clip-norm 5 --max-epoch 50 --max-tokens 7000 \
+    --clip-norm 5 --max-epoch 50 --max-tokens 7000 --no-epoch-checkpoints \
     --save-dir models/bookcorpus/edit/deleted --no-progress-bar --log-interval 5000
 ```
 
@@ -86,24 +88,27 @@ python eval_scoring_func.py --human-eval data/funniness_annotation/analysis_zsco
     --features grammar ratio --analysis --ignore-cache  
 ```
 
-## Deprecated below
-
-## Training
-Training commands are in `Makefile`.
-
-- Put raw data in `data/roc/kw-story/{train,valid,test}.{src,tgt}`
-- `make preprocess-fairseq data=roc/kw-story` will prepare processed data in `data/roc/kw-story/bin`
-- `make train data=roc/kw-story model=lstm ckpt=lstm`
-
-## Retrieve
-The retriever vectorize sentences by TFIDF scores (fitted on a training corpus).
-Given a query sentence, the retriever returns the top K sentences in the training corpus with the highest similarity scores,
-where similarity is computed by the dot product between TFIDF vectors.
-
+## Generate puns
+We generate puns given a pair of pun word and alternative word.
+We support pun generation with the following methods specified by the `system` argument.
+- `rule`: the SURGEN method described in the paper 
+- `rule+neural`: in the last step of SURGEN, use a neural combiner to edit the topic words
+- `retrieve`: retrieve a sentence containing the pun word
+- `retrieve+swap`: retrieve a sentence containing the alternative word and replace it with the pun word
+For arguments controlling the neural generator (e.g., `--beam`, `--nbest`), see `fairseq.options`.
+All results and logs are saved in `outdir`.
 ```
-python -m pungen.retriever --doc-file <train_data> --path <output> --overwrite 
+python generate_pun.py data/bookcorpus/edit/bin/data \
+	--path models/bookcorpus/edit/delete/checkpoint_best.pt \
+	--beam 20 --nbest 1 --unkpen 100 \
+	--system rule --task edit \
+	--retriever-model models/bookcorpus/retriever.pkl --doc-file data/bookcorpus/raw/sent.tokenized.txt \
+	--lm-path models/wikitext/wiki103.pt --word-counts-path models/wikitext/dict.txt \
+	--skipgram-model data/bookcorpus/skipgram/dict.txt models/bookcorpus/skipgram/sgns-e15.pt \
+	--num-candidates 500 --num-templates 100 \
+	--num-topic-word 100 --type-consistency-threshold 0.3 \
+	--pun-words data/semeval/hetero/dev.json \
+	--outdir results/semeval/hetero/dev/rule \
+	--scorer random \
+	--max-num-examples 100
 ```
-- train_data: tokenized sentences, one sentence per line. Tokenized 1B sentences are here: `https://worksheets.codalab.org/bundles/0x364840a62d6b495794354b2f9e849472/`.
-- lm_model: pretrained pytorch model, `https://github.com/pytorch/fairseq/tree/master/examples/language_model`.
-You can download it here: `https://worksheets.codalab.org/bundles/0x08e710512cdf471c8f66f19e70f910ef/`.
-- output: output path to save the retriever. Next time we will directly load from it.
