@@ -79,6 +79,9 @@ python -m pungen.retriever --doc-file data/bookcorpus/raw/sent.tokenized.txt \
 
 ## Analyze what makes a pun funny
 Compute correlation between local-global suprise scores and human funniness ratings.
+We provide our annotated dataset in `data/funniness_annotation`:
+- `analysis_pun_scores.txt`: sentences annotated with funniness scores from 1 to 5.
+- `analysis_zscored_pun_scores.txt`: the same data where scores are standardized for each annotator.
 ```
 python eval_scoring_func.py --human-eval data/funniness_annotation/analysis_zscored_pun_scores.txt \
 	--lm-path models/wikitext/wiki103.pt --word-counts-path models/wikitext/dict.txt \
