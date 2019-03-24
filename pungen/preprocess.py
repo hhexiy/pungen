@@ -15,7 +15,6 @@ from itertools import zip_longest
 import os
 import shutil
 
-
 from fairseq.data import indexed_dataset, EditDictionary as Dictionary
 from fairseq.tokenizer import Tokenizer, tokenize_line
 from multiprocessing import Pool, Manager, Process

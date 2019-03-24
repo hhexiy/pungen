@@ -1,0 +1,242 @@
+'' be still my hart '' she murmured , thinking how magnificent and stag - like he was .	hart-heart	pun	2.0
+'' be still my heart '' she murmured , thinking how magnificent and stag - like he was .	heart-hart	depun	1.4
+'' i 've been listening to the brandenburg concertos , '' tom bached .	bached-barked	depun	2.6
+'' i 've been listening to the brandenburg concertos , '' tom barked .	barked-bached	pun	1.0
+'' i 've stuck a pin through my nose , '' said tom punctually .	punctually-puncture	pun	1.4
+'' i 've stuck a pin through my nose , '' said tom puncture .	puncture-punctually	depun	1.0
+'' [ the jacksons ] gave the world a whole new glow and they must be careful to protect that glow , '' sharpton said .	glow-glowingly	retrieved_aw	1.0
+'' [ the jacksons ] gave the world a whole new glowingly and they must be careful to protect that glow , '' sharpton said .	glowingly-glow	retrieved_aw_alter	1.0
+'' but i have to mansion george bush , and i have to mention ted stevens , and i 'm afraid i even have to mention john mccain . ''	mansion-mention	retrieved_aw_alter	2.2
+'' but i have to mention george bush , and i have to mention ted stevens , and i 'm afraid i even have to mention john mccain . ''	mention-mansion	retrieved_aw	2.2
+'' he will have to recite seven arms from a book in the old testament , '' judge perez told the santiago daily la tercera .	arms-psalms	retrieved_pw_alter	1.2
+'' he will have to recite seven psalms from a book in the old testament , '' judge perez told the santiago daily la tercera .	psalms-arms	retrieved_pw	1.0
+'' it was hardly a month ago that an accord was concluded , and the accord and its terms should be respected today , '' parisot said .	accord-chord	retrieved_pw	1.8
+'' it was hardly a month ago that an chord was concluded , and the accord and its terms should be respected today , '' parisot said .	chord-accord	retrieved_pw_alter	1.6
+'' that 's the message we have to punctually , '' mr. nelson said .	punctually-puncture	retrieved_aw_alter	1.0
+'' that 's the message we have to puncture , '' mr. nelson said .	puncture-punctually	retrieved_aw	1.2
+'' they are going through some knotty discussions and i think those knotty discussions are going to continue for some time , '' rice said late on saturday .	knotty-naughty	retrieved_pw	1.2
+'' they are going through some naughty discussions and i think those knotty discussions are going to continue for some time , '' rice said late on saturday .	naughty-knotty	retrieved_pw_alter	2.2
+'' they are not using arms to campaign , but they have been keeping the arms with them .	arms-psalms	retrieved_aw	1.6
+'' they are not using psalms to campaign , but they have been keeping the arms with them .	psalms-arms	retrieved_aw_alter	3.2
+'' they do n't have the same culture of eating awful , '' points out jo macsween .	awful-offal	retrieved_pw_alter	1.4
+'' they do n't have the same culture of eating offal , '' points out jo macsween .	offal-awful	retrieved_pw	1.4
+'' toad smoking , '' which is a substitute for '' toad licking , '' is done by extracting venom from the sonoran desert toad of the colorado river .	toad-tow	retrieved_pw	1.2
+'' toad smoking , '' which is a substitute for '' tow licking , '' is done by extracting venom from the sonoran desert toad of the colorado river .	tow-toad	retrieved_pw_alter	1.2
+a base of cream cheese and sour cream studded with candid pecans , whiskey - soaked currants and the surprising , colorful addition of candied carrots .	candid-candied	retrieved_pw_alter	1.0
+a base of cream cheese and sour cream studded with candied pecans , whiskey - soaked currants and the surprising , colorful addition of candied carrots .	candied-candid	retrieved_pw	1.0
+a china doll was marked in tiny letters : ' made in usa ' .	made-maid	depun	1.0
+a china doll was marked in tiny letters : ' maid in usa ' .	maid-made	pun	2.8
+a music store was robbed . the thief made away with the loot .	loot-lute	depun	1.0
+a music store was robbed . the thief made away with the lute .	lute-loot	pun	4.2
+a few fridays ago , there he was at the windmill montessori school in brooklyn , taking candid pictures .	candid-candied	retrieved_aw	1.0
+a few fridays ago , there he was at the windmill montessori school in brooklyn , taking candied pictures .	candied-candid	retrieved_aw_alter	1.0
+add enough drained past , with a little of the reserved pasta cooking water , to the pan to give a nice ratio of tomatoes to pasta .	past-pasta	retrieved_pw_alter	1.0
+add enough drained pasta , with a little of the reserved pasta cooking water , to the pan to give a nice ratio of tomatoes to pasta .	pasta-past	retrieved_pw	1.0
+after burning a batch of cookies a baker felt very crumb .	crumb-crummy	depun	2.4
+after burning a batch of cookies a baker felt very crummy .	crummy-crumb	pun	4.0
+also included in the deal is the redevelopment of the melton silverdale hostel site , a learning disability hostel due to close in may.	hostel-hostile	retrieved_pw	1.0
+also included in the deal is the redevelopment of the melton silverdale hostile site , a learning disability hostel due to close in may.	hostile-hostel	retrieved_pw_alter	1.0
+although i clean the lend trap after each use , i wonder whether the dryer works harder due to lint and other debris clogging the exhaust line .	lend-lint	retrieved_pw_alter	1.0
+although i clean the lint trap after each use , i wonder whether the dryer works harder due to lint and other debris clogging the exhaust line .	lint-lend	retrieved_pw	1.0
+at least one g7 minister was heard to mother that this weekend 's meeting would be a '' waste of time '' .	mother-mutter	retrieved_pw_alter	1.0
+at least one g7 minister was heard to mutter that this weekend 's meeting would be a '' waste of time '' .	mutter-mother	retrieved_pw	1.0
+because reptiles are particularly likely to have salmonella , and it can contaminate their skin , everyone should immediately wash their hands after handling reptiles .	reptiles-tiles	retrieved_pw	1.0
+because tiles are particularly likely to have salmonella , and it can contaminate their skin , everyone should immediately wash their hands after handling reptiles .	tiles-reptiles	retrieved_pw_alter	1.2
+bogota , colombia ( ap ) -- ingrid betancourt was smiling ear to ear .	ear-era	retrieved_aw	1.0
+bogota , colombia ( ap ) -- ingrid betancourt was smiling era to ear .	era-ear	retrieved_aw_alter	1.0
+bonhams 's sail two days later was its second most successful chinese sale in a decade .	sail-sale	retrieved_aw_alter	1.0
+bonhams 's sale two days later was its second most successful chinese sale in a decade .	sale-sail	retrieved_aw	1.0
+but her five - active range helped win her the role of effie white in the 2006 musical film '' dreamgirls . ''	active-octave	retrieved_pw_alter	1.0
+but her five - octave range helped win her the role of effie white in the 2006 musical film '' dreamgirls . ''	octave-active	retrieved_pw	1.0
+by yourself you 're in the right . in a group you 're in the throng .	throng-wrong	pun	1.8
+by yourself you 're in the right . in a group you 're in the wrong .	wrong-throng	depun	1.2
+church house was built for the puritan bovine john frewen , who was the rector of northiam from 1598 to 1628 .	bovine-divine	retrieved_aw_alter	1.8
+church house was built for the puritan divine john frewen , who was the rector of northiam from 1598 to 1628 .	divine-bovine	retrieved_aw	1.0
+contrast hanoi's temples with the humble stilt houses on the mekong delta on a 13-day tour of vietnam .	stilt-stiltedly	retrieved_aw	1.0
+contrast hanoi's temples with the humble stiltedly houses on the mekong delta on a 13-day tour of vietnam .	stiltedly-stilt	retrieved_aw_alter	1.0
+cows make noise only when they 're in the moo .	moo-mood	depun	2.2
+cows make noise only when they 're in the mood .	mood-moo	pun	2.6
+decrease in selling and administrative expenses derived from reductions in operating , personnel and travel expenses , as a result of initiatives that punctually control the company 's outlays .	punctually-puncture	retrieved_pw	1.0
+decrease in selling and administrative expenses derived from reductions in operating , personnel and travel expenses , as a result of initiatives that puncture control the company 's outlays .	puncture-punctually	retrieved_pw_alter	1.0
+diets are for people who are sick and tired of it all .	sick-thick	depun	1.8
+diets are for people who are thick and tired of it all .	thick-sick	pun	3.8
+every four years , those four quarter days make a hole , and that whole becomes february 29th .	hole-whole	retrieved_aw_alter	1.6
+every four years , those four quarter days make a whole , and that whole becomes february 29th .	whole-hole	retrieved_aw	2.0
+family members of mind workers spent the night at a mine office not far from the entrance to the mine , located about 30 miles south of charleston .	mind-mine	retrieved_pw_alter	1.0
+family members of mine workers spent the night at a mine office not far from the entrance to the mine , located about 30 miles south of charleston .	mine-mind	retrieved_pw	1.0
+fashion is something that goes in one ear and out the other .	ear-era	depun	1.4
+fashion is something that goes in one era and out the other .	era-ear	pun	1.2
+ferguson revealed that when o'shea got back from france , blood concealed in his muscle , raising the possibility of further problems .	concealed-congealed	retrieved_pw_alter	1.0
+ferguson revealed that when o'shea got back from france , blood congealed in his muscle , raising the possibility of further problems .	congealed-concealed	retrieved_pw	1.0
+filippo berio extra - virgin olive oil costs $ 6 a court , versus $ 15.92 a quart at giant .	court-quart	retrieved_pw_alter	1.2
+filippo berio extra - virgin olive oil costs $ 6 a quart , versus $ 15.92 a quart at giant .	quart-court	retrieved_pw	1.0
+follow your knows .	knows-noses	pun	2.8
+follow your noses .	noses-knows	depun	1.0
+for the indecisive , cole haan offers a hybrid : leather - selld italian shoes with nike air technology hidden inside .	selld-soled	retrieved_pw_alter	1.4
+for the indecisive , cole haan offers a hybrid : leather - soled italian shoes with nike air technology hidden inside .	soled-selld	retrieved_pw	2.8
+he 's taken to calling his viewers '' knotty , naughty monkeys , '' particularly when they respond to one of his naughty , naughty jokes .	knotty-naughty	retrieved_aw_alter	2.8
+he 's taken to calling his viewers '' naughty , naughty monkeys , '' particularly when they respond to one of his naughty , naughty jokes .	naughty-knotty	retrieved_aw	2.8
+he is also past president of the congress of neurological surgeons , society of university neurosurgeons and past chair of the american board of neurological surgery .	past-pasta	retrieved_aw	1.0
+he is also pasta president of the congress of neurological surgeons , society of university neurosurgeons and past chair of the american board of neurological surgery .	pasta-past	retrieved_aw_alter	1.0
+he said sari a lot , sorry that i did n't understand his writing , sorry about all that .	sari-sorry	retrieved_aw_alter	3.4
+he said sorry a lot , sorry that i did n't understand his writing , sorry about all that .	sorry-sari	retrieved_aw	1.8
+he threw jello at his wife , who had him arrested for carrying a concealed weapon .	concealed-congealed	depun	1.2
+he threw jello at his wife , who had him arrested for carrying a congealed weapon .	congealed-concealed	pun	3.4
+he told the court : '' when she was being sick i felt sick myself and was immediately sick .	sick-thick	retrieved_aw	1.2
+he told the court : '' when she was being thick i felt sick myself and was immediately sick .	thick-sick	retrieved_aw_alter	1.2
+his wife left him saying she was going home to mother .	mother-mutter	depun	1.0
+his wife left him saying she was going home to mutter .	mutter-mother	pun	2.0
+however , united were awful in the second half , just as chelsea were awful on sunday and liverpool might be awful against portsmouth on wednesday night .	awful-offal	retrieved_aw	1.0
+however , united were offal in the second half , just as chelsea were awful on sunday and liverpool might be awful against portsmouth on wednesday night .	offal-awful	retrieved_aw_alter	1.2
+i 've been to a film festival in the south of france , said tom cannes .	cannes-cannily	depun	2.8
+i 've been to a film festival in the south of france , said tom cannily .	cannily-cannes	pun	1.0
+i deny everything , said tom knowingly .	knowingly-no	pun	1.8
+i deny everything , said tom no .	no-knowingly	depun	1.0
+in a hart attack , blood flow is blocked to part of the heart , damaging heart muscle , but the heart usually continues to beat .	hart-heart	retrieved_aw_alter	1.0
+in a heart attack , blood flow is blocked to part of the heart , damaging heart muscle , but the heart usually continues to beat .	heart-hart	retrieved_aw	1.0
+it 's less than an inch sick and is just .16 inches thick at its thinnest point .	sick-thick	retrieved_pw_alter	1.2
+it 's less than an inch thick and is just .16 inches thick at its thinnest point .	thick-sick	retrieved_pw	1.0
+julian schnabel is cannes placed , having poached a golden globe for the diving bell and the butterfly .	cannes-cannily	retrieved_pw_alter	1.8
+julian schnabel is cannily placed , having poached a golden globe for the diving bell and the butterfly .	cannily-cannes	retrieved_pw	2.2
+let ' s all play an a , a c sharp , and an e , cried tom ' s band with one accord .	accord-chord	pun	2.2
+let ' s all play an a , a c sharp , and an e , cried tom ' s band with one chord .	chord-accord	depun	2.4
+my favorite crumb cake recipe calls for an exaggerated topping created by pinching the crumb mixture into marbles .	crumb-crummy	retrieved_aw	1.2
+my favorite crummy cake recipe calls for an exaggerated topping created by pinching the crumb mixture into marbles .	crummy-crumb	retrieved_aw_alter	1.2
+not with a bang , but a moo , the last ever royal show closed on july 10th , ending a 170-year run .	moo-mood	retrieved_aw	1.0
+not with a bang , but a mood , the last ever royal show closed on july 10th , ending a 170-year run .	mood-moo	retrieved_aw_alter	1.0
+power accord simple chord that is based on one interval ( normally the root and the fifth ) .	accord-chord	retrieved_aw_alter	1.0
+power chord simple chord that is based on one interval ( normally the root and the fifth ) .	chord-accord	retrieved_aw	1.0
+prices vary , but range from about $500 for a three-day sail to about $1,000 for six-day sail .	sail-sale	retrieved_pw	1.0
+prices vary , but range from about $500 for a three-day sale to about $1,000 for six-day sail .	sale-sail	retrieved_pw_alter	1.2
+put on your best suit or that sari you bought and go to shani mandir ( 1 , peelwa gardens , moti doongri road ) .	sari-sorry	retrieved_pw	1.8
+put on your best suit or that sorry you bought and go to shani mandir ( 1 , peelwa gardens , moti doongri road ) .	sorry-sari	retrieved_pw_alter	1.6
+she wanted the large estate quite badly but , she dared not mansion it to her frugal husband .	mansion-mention	pun	4.4
+she wanted the large estate quite badly but , she dared not mention it to her frugal husband .	mention-mansion	depun	2.0
+so , it appears that the joe girardi ear will follow the joe torre era in the bronx .	ear-era	retrieved_pw_alter	1.2
+so , it appears that the joe girardi era will follow the joe torre era in the bronx .	era-ear	retrieved_pw	1.2
+so look out for throng names , wrong airlines , wrong cities , wrong dates and wrong expectations .	throng-wrong	retrieved_aw_alter	1.8
+so look out for wrong names , wrong airlines , wrong cities , wrong dates and wrong expectations .	wrong-throng	retrieved_aw	2.0
+so there was holmes on the 16th hole taking a one - hole lead on soren hansen .	hole-whole	retrieved_pw	2.0
+so there was holmes on the 16th whole taking a one - hole lead on soren hansen .	whole-hole	retrieved_pw_alter	1.8
+students for concealed carry on campus claims to have more than 12,000 members nationwide , dedicated to legalizing concealed weapons on american college campuses .	concealed-congealed	retrieved_aw	1.2
+students for concealed carry on campus claims to have more than 12,000 members nationwide , dedicated to legalizing congealed weapons on american college campuses .	congealed-concealed	retrieved_aw_alter	1.8
+that 's all well and good for real life carson palmer and the bengals , but crumb for fantasy carson palmer and his owners .	crumb-crummy	retrieved_pw_alter	1.0
+that 's all well and good for real life carson palmer and the bengals , but crummy for fantasy carson palmer and his owners .	crummy-crumb	retrieved_pw	1.0
+the army is not designed for a ten year guerrilla war in hostel terrain and with a generally hostile population .	hostel-hostile	retrieved_aw_alter	1.6
+the army is not designed for a ten year guerrilla war in hostile terrain and with a generally hostile population .	hostile-hostel	retrieved_aw	1.0
+the beckhams currently live in a $22 million beverly hills mansion but maintain the hertfordshire mansion as a base in britain .	mansion-mention	retrieved_pw	1.0
+the beckhams currently live in a $22 million beverly hills mention but maintain the hertfordshire mansion as a base in britain .	mention-mansion	retrieved_pw_alter	1.0
+the boating store had its best sail ever .	sail-sale	pun	4.8
+the boating store had its best sale ever .	sale-sail	depun	2.4
+the catalogue , detailing 13,882 reptiles , gave a complete overview of the development of tiles from the late saxon period to the mid-16th century .	reptiles-tiles	retrieved_aw_alter	1.0
+the catalogue , detailing 13,882 tiles , gave a complete overview of the development of tiles from the late saxon period to the mid-16th century .	tiles-reptiles	retrieved_aw	1.0
+the cobbler was asked how many shoes he had selld by a well	selld-soled	depun	1.6
+the cobbler was asked how many shoes he had soled by a well	soled-selld	pun	2.8
+the company 's consolidated cache balance at march 31, 2009 consisted of $130.1 million of cash and cash equivalents and $124.8 million of restricted cash .	cache-cash	retrieved_pw_alter	1.0
+the company 's consolidated cash balance at march 31, 2009 consisted of $130.1 million of cash and cash equivalents and $124.8 million of restricted cash .	cash-cache	retrieved_pw	1.0
+the doctors had to remove a bone from my arm , said tom humerus .	humerus-humorlessly	depun	1.8
+the doctors had to remove a bone from my arm , said tom humorlessly .	humorlessly-humerus	pun	2.6
+the extremists bached and barked recently when a proposed law banning texting while driving was brought up .	bached-barked	retrieved_pw_alter	1.0
+the extremists barked and barked recently when a proposed law banning texting while driving was brought up .	barked-bached	retrieved_pw	1.0
+the funeral mass for lance cpl . maria lauterbach drew a throng to st. christopher catholic church near dayton .	throng-wrong	retrieved_pw	1.0
+the funeral mass for lance cpl . maria lauterbach drew a wrong to st. christopher catholic church near dayton .	wrong-throng	retrieved_pw_alter	1.0
+the key to changing your performance ability is by tuning out criticism and staying musically active .	active-octave	depun	1.0
+the key to changing your performance ability is by tuning out criticism and staying musically octave .	octave-active	pun	2.8
+the mother of six children , she was named illinois mother of the year in 1992 .	mother-mutter	retrieved_aw	1.0
+the mutter of six children , she was named illinois mother of the year in 1992 .	mutter-mother	retrieved_aw_alter	1.2
+the newspaper said that the taj mahal did not accept responsibility for that accident , which resulted in ciocci breaking her left humerus bone .	humerus-humorlessly	retrieved_aw	2.0
+the newspaper said that the taj mahal did not accept responsibility for that accident , which resulted in ciocci breaking her left humorlessly bone .	humorlessly-humerus	retrieved_aw_alter	1.6
+the songs are accompanied variously by loot , ensemble or both , and a half dozen elegantly turned lute solos and consort fantasias are interspersed among them .	loot-lute	retrieved_pw_alter	2.4
+the songs are accompanied variously by lute , ensemble or both , and a half dozen elegantly turned lute solos and consort fantasias are interspersed among them .	lute-loot	retrieved_pw	1.0
+the ultimate liquid measure is the supreme court .	court-quart	depun	2.4
+the ultimate liquid measure is the supreme quart .	quart-court	pun	3.2
+the workers are all involved in studying the spread of bovine tb for the department for environment, food and rural affairs .	bovine-divine	retrieved_pw	1.0
+the workers are all involved in studying the spread of divine tb for the department for environment, food and rural affairs .	divine-bovine	retrieved_pw_alter	1.0
+the young pine sapling was admonished by his father . apparently he ' d been knotty .	knotty-naughty	pun	4.4
+the young pine sapling was admonished by his father . apparently he ' d been naughty .	naughty-knotty	depun	2.0
+they won 't stay at friendly hotels , because they 're hostel people .	hostel-hostile	pun	3.2
+they won 't stay at friendly hotels , because they 're hostile people .	hostile-hostel	depun	1.8
+thinking that the cirrus was going to hit his plane or the toad cable , bakker reached for the tow - release lever .	toad-tow	retrieved_aw_alter	1.0
+thinking that the cirrus was going to hit his plane or the tow cable , bakker reached for the tow - release lever .	tow-toad	retrieved_aw	1.0
+this all comes as the government , trying to stimulate the economy , is pleading with banks -- big and small -- to lend , lend , lend .	lend-lint	retrieved_aw	1.0
+this all comes as the government , trying to stimulate the economy , is pleading with banks -- big and small -- to lint , lend , lend .	lint-lend	retrieved_aw_alter	1.2
+to improve thermal efficiency of buildings , gmc will complete the process of replacing single pain windows in its residence halls with high efficiency double pane units .	pain-pane	retrieved_pw_alter	1.0
+to improve thermal efficiency of buildings , gmc will complete the process of replacing single pane windows in its residence halls with high efficiency double pane units .	pane-pain	retrieved_pw	1.4
+try moo teeter - totters , mood elevators , mood escalators , mood rockets .	moo-mood	retrieved_pw_alter	1.8
+try mood teeter - totters , mood elevators , mood escalators , mood rockets .	mood-moo	retrieved_pw	1.2
+we welcome you with open arms .	arms-psalms	depun	1.2
+we welcome you with open psalms .	psalms-arms	pun	4.0
+what kind of flooring do alligator hunters use ? reptiles !	reptiles-tiles	pun	4.2
+what kind of flooring do alligator hunters use ? tiles !	tiles-reptiles	depun	1.2
+when asked by a health department official to describe the mess he saw on the slaughterhouse floor , the usda inspector replied , '' it was just awful . ' '	awful-offal	depun	1.2
+when asked by a health department official to describe the mess he saw on the slaughterhouse floor , the usda inspector replied , '' it was just offal . ' '	offal-awful	pun	1.8
+when asked to picture the perfect modern defensive weapon the claymore springs to mind .	mind-mine	depun	1.8
+when asked to picture the perfect modern defensive weapon the claymore springs to mine .	mine-mind	pun	1.2
+when his clothes dryer broke he was lend another one .	lend-lint	depun	1.0
+when his clothes dryer broke he was lint another one .	lint-lend	pun	3.6
+when it got stuck in the mud my car had to be toad .	toad-tow	pun	2.2
+when it got stuck in the mud my car had to be tow .	tow-toad	depun	1.0
+when it was over , the u.s. government paid kazakhstan about $27 million for the cache .	cache-cash	retrieved_aw	1.2
+when it was over , the u.s. government paid kazakhstan about $27 million for the cash .	cash-cache	retrieved_aw_alter	1.0
+when my camera fell in the toffee i was making , i got a very candid picture .	candid-candied	depun	4.4
+when my camera fell in the toffee i was making , i got a very candied picture .	candied-candid	pun	3.0
+when the glassblower inhaled he got a pain in the stomach .	pain-pane	depun	1.4
+when the glassblower inhaled he got a pane in the stomach .	pane-pain	pun	2.8
+while caustic prices and sales volume declined slightly during the fourth quarter of 2008 , caustic margins remained high .	caustic-caustically	retrieved_aw	1.0
+while caustically prices and sales volume declined slightly during the fourth quarter of 2008 , caustic margins remained high .	caustically-caustic	retrieved_aw_alter	1.0
+yesterday a cow saved my life - it was bovine intervention .	bovine-divine	pun	4.0
+yesterday a cow saved my life - it was divine intervention .	divine-bovine	depun	1.8
+you can not change the mind of an iowan once he has made up his mind .	mind-mine	retrieved_aw	1.0
+you can not change the mine of an iowan once he has made up his mind .	mine-mind	retrieved_aw_alter	1.0
+you do all the work , and amazon pockets more than two thirds of the loot .	loot-lute	retrieved_aw	3.2
+you do all the work , and amazon pockets more than two thirds of the lute .	lute-loot	retrieved_aw_alter	2.4
+zero - to-10 pain scales let patients rate how much pain they are in , zero indicating no pain and 10 indicating terrible pain .	pain-pane	retrieved_aw	1.8
+zero - to-10 pane scales let patients rate how much pain they are in , zero indicating no pain and 10 indicating terrible pain .	pane-pain	retrieved_aw_alter	1.8
+'' i 'm halfway up a mountain , '' tom alleged .	alleged-ledged	pun	2.8
+'' i 'm halfway up a mountain , '' tom ledged .	ledged-alleged	depun	2.8
+a busy barber is quite hairy .	hairy-harried	depun	1.8
+a busy barber is quite harried .	harried-hairy	pun	4.2
+are evil wildebeests bad gnus ?	gnus-newss	pun	3.8
+are evil wildebeests bad newss ?	newss-gnus	depun	2.2
+but hudson is hardly hairy about the release of '' jennifer hudson , '' out this week .	hairy-harried	retrieved_pw_alter	3.0
+but hudson is hardly harried about the release of '' jennifer hudson , '' out this week .	harried-hairy	retrieved_pw	2.0
+christine peligat : no , knowingly , no , no .	knowingly-no	retrieved_aw_alter	2.6
+christine peligat : no , no , no , no .	no-knowingly	retrieved_aw	2.4
+connie harris , 60 , of carlsbad , calif. , says she was up and around within days of undergoing unusual natural office surgery .	office-orifice	retrieved_pw_alter	1.8
+connie harris , 60 , of carlsbad , calif. , says she was up and around within days of undergoing unusual natural orifice surgery .	orifice-office	retrieved_pw	2.0
+dentists don 't like a hard day at the office .	office-orifice	depun	2.4
+dentists don 't like a hard day at the orifice .	orifice-office	pun	3.0
+denver made 8 of 15 3-pointers on tuesday while indiana made just 3 of 22 .	made-maid	retrieved_aw	3.0
+denver maid 8 of 15 3-pointers on tuesday while indiana made just 3 of 22 .	maid-made	retrieved_aw_alter	3.0
+farrell died in 1979 , renault died in 1983 , spark died in 2006 and white died in 1990 .	died-dyed	retrieved_aw	2.0
+farrell dyed in 1979 , renault died in 1983 , spark died in 2006 and white died in 1990 .	dyed-died	retrieved_aw_alter	2.0
+he knows where the clintons should appear , he knows who they should appear with , he knows when , he knows why .	knows-noses	retrieved_pw	1.8
+he noses where the clintons should appear , he knows who they should appear with , he knows when , he knows why .	noses-knows	retrieved_pw_alter	5.0
+he reportedly changes the color of his thick beard frequently , and it may be white or died red with henna , or then again dyed black .	died-dyed	retrieved_pw_alter	4.0
+he reportedly changes the color of his thick beard frequently , and it may be white or dyed red with henna , or then again dyed black .	dyed-died	retrieved_pw	4.8
+i ' d like to be a chinese laborer , said tom coolly .	coolly-cooly	pun	3.2
+i ' d like to be a chinese laborer , said tom cooly .	cooly-coolly	depun	3.2
+it ' s between my sole and my heel , said tom arch .	arch-archly	depun	4.2
+it ' s between my sole and my heel , said tom archly .	archly-arch	pun	3.6
+more than 200 alleged victims and witnesses have contacted police about alleged abuse from the 1960s to 1986 .	alleged-ledged	retrieved_pw	2.0
+more than 200 ledged victims and witnesses have contacted police about alleged abuse from the 1960s to 1986 .	ledged-alleged	retrieved_pw_alter	2.2
+on one particular handstand , she began to arch over but was able to resist the arch and continue the routine .	arch-archly	retrieved_aw	3.8
+on one particular handstand , she began to archly over but was able to resist the arch and continue the routine .	archly-arch	retrieved_aw_alter	2.8
+the government , he said arch , would use '' the wisdom of our nation 's leading scholars '' to clean up the site .	arch-archly	retrieved_pw_alter	2.0
+the government , he said archly , would use '' the wisdom of our nation 's leading scholars '' to clean up the site .	archly-arch	retrieved_pw	2.2
+the main difference between japanese made cafes and this temporary maid cafe in crystal city ?	made-maid	retrieved_pw_alter	2.2
+the main difference between japanese maid cafes and this temporary maid cafe in crystal city ?	maid-made	retrieved_pw	2.8
+the mood in the office , my office and probably any office , is that the worst might be over .	office-orifice	retrieved_aw	2.4
+the mood in the orifice , my office and probably any office , is that the worst might be over .	orifice-office	retrieved_aw_alter	2.8
+the obama administration welcomed the israeli decision , but coolly .	coolly-cooly	retrieved_pw	2.0
+the obama administration welcomed the israeli decision , but cooly .	cooly-coolly	retrieved_pw_alter	2.2
+they have seen that people making money will keep their knows out of politics , especially if they know their noses will be cut off . ''	knows-noses	retrieved_aw_alter	4.2
+they have seen that people making money will keep their noses out of politics , especially if they know their noses will be cut off . ''	noses-knows	retrieved_aw	4.8
+things got a little hairy at the 25th annual garmisch-partenkirchen beard championship this weekend .	hairy-harried	retrieved_aw	4.0
+things got a little harried at the 25th annual garmisch-partenkirchen beard championship this weekend .	harried-hairy	retrieved_aw_alter	3.0
+two construction workers had a stairing contest .	stairing-stareing	pun	4.0
+two construction workers had a stareing contest .	stareing-stairing	depun	3.2
+us defense secretary robert gates , who joined cartwright at a pentagon news conference , meanwhile responded coolly to prospects of a breakthrough in relations with iran .	coolly-cooly	retrieved_aw_alter	2.2
+us defense secretary robert gates , who joined cartwright at a pentagon news conference , meanwhile responded cooly to prospects of a breakthrough in relations with iran .	cooly-coolly	retrieved_aw	2.4
+yesterday i accidentally swallowed some food coloring . the doctor says i 'm ok , but i feel like i 've died a little inside .	died-dyed	depun	4.0
+yesterday i accidentally swallowed some food coloring . the doctor says i 'm ok , but i feel like i 've dyed a little inside .	dyed-died	pun	4.8

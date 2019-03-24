@@ -8,8 +8,8 @@ import fuzzy
 from fairseq import options
 
 from pungen.retriever import Retriever
-from pungen.generator import SkipGram, RulebasedGenerator, NeuralCombinerGenerator, RetrieveGenerator, RetrieveSwapGenerator
-from pungen.scorer import LMScorer, SurprisalScorer, UnigramModel, RandomScorer, GoodmanScorer, LearnedScorer
+from pungen.generator import SkipGram, RulebasedGenerator, NeuralCombinerGenerator, RetrieveGenerator, RetrieveSwapGenerator, KeywordsGenerator
+from pungen.scorer import LMScorer, SurprisalScorer, UnigramModel, RandomScorer, GoodmanScorer
 from pungen.type import TypeRecognizer
 from pungen.options import add_scorer_args, add_editor_args, add_retriever_args, add_generic_args, add_type_checker_args
 from pungen.utils import logging_config, get_lemma, ensure_exist, get_spacy_nlp
@@ -26,10 +26,8 @@ def parse_args():
     add_retriever_args(parser)
     add_type_checker_args(parser)
     add_generic_args(parser)
-    parser.add_argument('--interactive', action='store_true')
     parser.add_argument('--pun-words')
     parser.add_argument('--system', default='rule')
-    parser.add_argument('--num-workers', type=int, default=1)
     parser.add_argument('--max-num-examples', type=int, default=-1)
     args = options.parse_args_and_arch(parser)
     return args
@@ -41,18 +39,10 @@ def iter_keywords(file_):
             yield alter_word, pun_word
 
 def feasible_pun_words(pun_word, alter_word, unigram_model, skipgram=None, freq_threshold=1000):
+    # Pun / alternative word cannot be phrases
     if len(alter_word.split('_')) > 1 or len(pun_word.split('_')) > 1:
         logger.info('FAIL: phrase')
         return False, 'phrase'
-
-    #if nlp(pun_word)[0].pos_[0] != nlp(alter_word)[0].pos_[0]:
-    #    logger.info('FAIL: different POS tags')
-    #    return False, 'pos tag'
-
-    #if unigram_model.word_counts.get(pun_word, 0) < freq_threshold or \
-    #    unigram_model.word_counts.get(alter_word, 0) < freq_threshold:
-    #    logger.info('FAIL: rare words')
-    #    return False, 'rare'
 
     if skipgram and skipgram.vocab.index(get_lemma(pun_word)) == skipgram.vocab.unk():
         logger.info('FAIL: unknown pun word: {}'.format(pun_word))
@@ -68,7 +58,7 @@ def main(args):
     unigram_model = UnigramModel(args.word_counts_path, args.oov_prob)
     retriever = Retriever(args.doc_file, path=args.retriever_model, overwrite=args.overwrite_retriever_model)
 
-    if args.system.startswith('rule') or args.scorer in ('goodman', 'learned'):
+    if args.system.startswith('rule') or args.system == 'keywords' or args.scorer in ('goodman',):
         skipgram = SkipGram.load_model(args.skipgram_model[0], args.skipgram_model[1], embedding_size=args.skipgram_embed_size, cpu=args.cpu)
     else:
         skipgram = None
@@ -80,13 +70,6 @@ def main(args):
         scorer = SurprisalScorer(lm, unigram_model, local_window_size=args.local_window_size)
     elif args.scorer == 'goodman':
         scorer = GoodmanScorer(unigram_model, skipgram)
-    elif args.scorer == 'learned':
-        lm = LMScorer.load_model(args.lm_path)
-        _scorers = [
-                SurprisalScorer(lm, unigram_model, local_window_size=args.local_window_size),
-                GoodmanScorer(unigram_model, skipgram)]
-        scorer = LearnedScorer.from_pickle(args.learned_scorer_weights, args.learned_scorer_features, _scorers)
-
 
     type_recognizer = TypeRecognizer(threshold=args.type_consistency_threshold)
 
@@ -115,7 +98,8 @@ def main(args):
                                        freq(e['pun_word'], e['alter_word'])),
                   reverse=True)
     num_success = 0
-    for example in puns[100:]:
+    processed_examples = []
+    for example in puns:
         pun_word, alter_word = example['pun_word'], example['alter_word']
         logger.info('-'*50)
         logger.info('INPUT: alter={} pun={}'.format(alter_word, pun_word))
@@ -137,11 +121,12 @@ def main(args):
         for r in results[:3]:
             logger.info('{:<8.2f}{}'.format(r['score'], ' '.join(r['output'])))
 
+        processed_examples.append(example)
         num_success += 1
         if args.max_num_examples > 0 and num_success >= args.max_num_examples:
             break
 
-    json.dump(puns, open(os.path.join(args.outdir, 'results.json'), 'w'))
+    json.dump(processed_examples, open(os.path.join(args.outdir, 'results.json'), 'w'))
 
 
 if __name__ == '__main__':

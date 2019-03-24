@@ -9,8 +9,6 @@ from scipy.stats import entropy
 
 from fairseq import data, options, tasks, utils, tokenizer
 from fairseq.sequence_scorer import SequenceScorer
-import mxnet as mx
-import gluonnlp as gnlp
 
 import logging
 logger = logging.getLogger('pungen')
@@ -163,7 +161,9 @@ class SurprisalScorer(PunScorer):
         else:
             r = local_surprisal / global_surprisal  # larger is better
 
-        res = {'grammar': grammar, 'ratio': r}
+        res = {'grammar': grammar, 'ratio': r,
+               'local': local_surprisal, 'global': global_surprisal,
+              }
         res = {k: float(v) for k, v in res.items()}
         return res
 
@@ -176,7 +176,6 @@ class GoodmanScoreCaculator(object):
         self.unigram_logprobs = {w: um._score(w) for w in _words}
         self.unigram_probs = {w: np.exp(s) for w, s in self.unigram_logprobs.items()}
         self.skipgram_probs = self.skipgram_scores(skipgram, _words, meanings)
-        #self.skipgram_probs = self.glove_scores(glove, _words, meanings)
         self.meaning_prior = self.meaning_prior()
 
     def glove_scores(self, glove, words, meanings):

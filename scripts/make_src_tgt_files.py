@@ -1,6 +1,6 @@
 import argparse
-import nltk
 import random
+from tqdm import tqdm
 from sklearn.feature_extraction.text import TfidfVectorizer
 from spacy.lang.en.stop_words import STOP_WORDS
 
@@ -64,7 +64,7 @@ def main(args):
     with open(args.parsed_corpus, 'r') as fin, \
          open(args.output+'.src', 'w') as fsrc, \
          open(args.output+'.tgt', 'w') as ftgt:
-        for words in sentence_iterator(args.parsed_corpus, args.max_examples):
+        for words in tqdm(sentence_iterator(args.parsed_corpus, args.max_examples)):
             template, del_word, deleted = split_sent(words, args.delete_frac, args.window_size, args.random_window_size)
             if not template:
                 continue

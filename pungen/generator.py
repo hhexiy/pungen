@@ -181,6 +181,29 @@ class RulebasedGenerator(object):
 
         return results
 
+class KeywordsGenerator(object):
+    def __init__(self, retriever, neighbor_predictor):
+        self.retriever = retriever
+        self.neighbor_predictor = neighbor_predictor
+
+    def _get_local_context(self, template, word, size=2):
+        start = max(0, template.keyword_id - size)
+        end = min(len(template), template.keyword_id + size + 1)
+        tokens = template.replace_keyword(word)
+        return tokens[start:end]
+
+    def generate(self, alter_word, pun_word, k=20, ncands=500, ntemps=10):
+        templates = self.retriever.retrieve_pun_template(alter_word, num_cands=ncands, num_templates=ntemps)
+        local_contexts = [self._get_local_context(t, pun_word) for t in templates]
+        words = self.neighbor_predictor.predict_neighbors(pun_word, k=k)
+        words = [w for w in words if w.isalnum()]
+        r = {
+                'local_contexts': local_contexts,
+                'topic_words': words,
+                }
+        results = [r]
+        return results
+
 class NeuralSLGenerator(object):
     def __init__(self, args):
         task, model, model_args = self.load_model(args)
@@ -358,10 +381,7 @@ class NeuralCombinerGenerator(RulebasedGenerator):
                 yield (start, end), del_word_id
 
     def get_topic_words(self, pun_word, del_word=None, tags=('NOUN', 'PROPN'), k=20, context=None):
-        if self.model_args.insert == 'related':
-            return ['dummy']
-        else:
-            return super().get_topic_words(pun_word, del_word=del_word, tags=tags, k=k, context=context)
+        return super().get_topic_words(pun_word, del_word=del_word, tags=tags, k=k, context=context)
 
     def rewrite(self, pun_sent, delete_span, insert_word, pun_word_id):
         start, end = delete_span

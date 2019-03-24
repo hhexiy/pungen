@@ -1,0 +1,194 @@
+' ' be still my hart ' ' she murmured , thinking how magnificent and stag - like he was .	hart-heart	pun	-0.9171868709366537
+' ' be still my heart ' ' she murmured , thinking how magnificent and stag - like he was .	heart-hart	depun	-0.2838535376033203
+' ' i ' ve been listening to the brandenburg concertos , ' ' tom bached .	bached-barked	depun	0.2218956052041013
+' ' i ' ve been listening to the brandenburg concertos , ' ' tom barked .	barked-bached	pun	-0.9171868709366537
+' ' i ' ve stuck a pin through my nose , ' ' said tom punctually .	punctually-puncture	pun	-0.3272481942364793
+' ' i ' ve stuck a pin through my nose , ' ' said tom puncture .	puncture-punctually	depun	-0.6266289932364699
+'' [ the jacksons ] gave the world a whole new glow and they must be careful to protect that glow , '' sharpton said .	glow-glowingly	retrieved_aw	-0.28129615499078814
+'' [ the jacksons ] gave the world a whole new glowingly and they must be careful to protect that glow , '' sharpton said .	glowingly-glow	retrieved_aw_alter	-0.28129615499078814
+'' but i have to mansion george bush , and i have to mention ted stevens , and i 'm afraid i even have to mention john mccain . ''	mansion-mention	retrieved_aw_alter	-0.11605364662159086
+'' but i have to mention george bush , and i have to mention ted stevens , and i 'm afraid i even have to mention john mccain . ''	mention-mansion	retrieved_aw	-0.0466401001040509
+'' he will have to recite seven arms from a book in the old testament , '' judge perez told the santiago daily la tercera .	arms-psalms	retrieved_pw_alter	-0.21494764323994703
+'' he will have to recite seven psalms from a book in the old testament , '' judge perez told the santiago daily la tercera .	psalms-arms	retrieved_pw	-0.36914089447238607
+'' it was hardly a month ago that an accord was concluded , and the accord and its terms should be respected today , '' parisot said .	accord-chord	retrieved_pw	-0.12280209940476003
+'' it was hardly a month ago that an chord was concluded , and the accord and its terms should be respected today , '' parisot said .	chord-accord	retrieved_pw_alter	-0.24148026522414537
+'' that 's the message we have to punctually , '' mr. nelson said .	punctually-puncture	retrieved_aw_alter	-0.19400899889639125
+'' that 's the message we have to puncture , '' mr. nelson said .	puncture-punctually	retrieved_aw	-0.039815747663952225
+'' they are going through some knotty discussions and i think those knotty discussions are going to continue for some time , '' rice said late on saturday .	knotty-naughty	retrieved_pw	-0.724643345630477
+'' they are going through some naughty discussions and i think those knotty discussions are going to continue for some time , '' rice said late on saturday .	naughty-knotty	retrieved_pw_alter	0.012399589128351587
+'' they are not using arms to campaign , but they have been keeping the arms with them .	arms-psalms	retrieved_aw	0.15617606581114812
+'' they are not using psalms to campaign , but they have been keeping the arms with them .	psalms-arms	retrieved_aw_alter	1.8959289236001866
+'' they do n't have the same culture of eating awful , '' points out jo macsween .	awful-offal	retrieved_pw_alter	-0.16496937494143857
+'' they do n't have the same culture of eating offal , '' points out jo macsween .	offal-awful	retrieved_pw	-0.05119335014372371
+'' toad smoking , '' which is a substitute for '' toad licking , '' is done by extracting venom from the sonoran desert toad of the colorado river .	toad-tow	retrieved_pw	-0.6938536956040089
+'' toad smoking , '' which is a substitute for '' tow licking , '' is done by extracting venom from the sonoran desert toad of the colorado river .	tow-toad	retrieved_pw_alter	-0.1681156724366677
+a base of cream cheese and sour cream studded with candid pecans , whiskey - soaked currants and the surprising , colorful addition of candied carrots .	candid-candied	retrieved_pw_alter	-0.8047937348490546
+a base of cream cheese and sour cream studded with candied pecans , whiskey - soaked currants and the surprising , colorful addition of candied carrots .	candied-candid	retrieved_pw	-0.8047937348490546
+a china doll was marked in tiny letters : ' made in usa ' .	made-maid	depun	-0.19400899889639125
+a china doll was marked in tiny letters : ' maid in usa ' .	maid-made	pun	1.0131302234119108
+a music store was robbed . the thief made away with the loot .	loot-lute	depun	-0.11718687093665361
+a music store was robbed . the thief made away with the lute .	lute-loot	pun	2.1453928827606634
+a few fridays ago , there he was at the windmill montessori school in brooklyn , taking candid pictures .	candid-candied	retrieved_aw	-0.6662580694366397
+a few fridays ago , there he was at the windmill montessori school in brooklyn , taking candied pictures .	candied-candid	retrieved_aw_alter	-0.8047937348490546
+add enough drained past , with a little of the reserved pasta cooking water , to the pan to give a nice ratio of tomatoes to pasta .	past-pasta	retrieved_pw_alter	-0.28129615499078814
+add enough drained pasta , with a little of the reserved pasta cooking water , to the pan to give a nice ratio of tomatoes to pasta .	pasta-past	retrieved_pw	-0.28129615499078814
+after burning a batch of cookies a baker felt very crumb .	crumb-crummy	depun	0.7826928850227004
+after burning a batch of cookies a baker felt very crummy .	crummy-crumb	pun	2.1536263568074476
+also included in the deal is the redevelopment of the melton silverdale hostel site , a learning disability hostel due to close in may.	hostel-hostile	retrieved_pw	-0.8481176050782491
+also included in the deal is the redevelopment of the melton silverdale hostile site , a learning disability hostel due to close in may.	hostile-hostel	retrieved_pw_alter	-0.8481176050782491
+although i clean the lend trap after each use , i wonder whether the dryer works harder due to lint and other debris clogging the exhaust line .	lend-lint	retrieved_pw_alter	-0.7881308321907354
+although i clean the lint trap after each use , i wonder whether the dryer works harder due to lint and other debris clogging the exhaust line .	lint-lend	retrieved_pw	-0.7881308321907354
+at least one g7 minister was heard to mother that this weekend 's meeting would be a '' waste of time '' .	mother-mutter	retrieved_pw_alter	-0.11718687093665361
+at least one g7 minister was heard to mutter that this weekend 's meeting would be a '' waste of time '' .	mutter-mother	retrieved_pw	-0.11718687093665361
+because reptiles are particularly likely to have salmonella , and it can contaminate their skin , everyone should immediately wash their hands after handling reptiles .	reptiles-tiles	retrieved_pw	-0.9171868709366537
+because tiles are particularly likely to have salmonella , and it can contaminate their skin , everyone should immediately wash their hands after handling reptiles .	tiles-reptiles	retrieved_pw_alter	0.03700638029578536
+bogota , colombia ( ap ) -- ingrid betancourt was smiling ear to ear .	ear-era	retrieved_aw	-0.11718687093665361
+bogota , colombia ( ap ) -- ingrid betancourt was smiling era to ear .	era-ear	retrieved_aw_alter	-0.2838535376033203
+bonhams 's sail two days later was its second most successful chinese sale in a decade .	sail-sale	retrieved_aw_alter	-0.19400899889639125
+bonhams 's sale two days later was its second most successful chinese sale in a decade .	sale-sail	retrieved_aw	-0.19400899889639125
+but her five - active range helped win her the role of effie white in the 2006 musical film '' dreamgirls . ''	active-octave	retrieved_pw_alter	-0.19400899889639125
+but her five - octave range helped win her the role of effie white in the 2006 musical film '' dreamgirls . ''	octave-active	retrieved_pw	-0.19400899889639125
+by yourself you ' re in the right . in a group you ' re in the throng .	throng-wrong	pun	0.03700638029578536
+by yourself you ' re in the right . in a group you ' re in the wrong .	wrong-throng	depun	0.03700638029578536
+church house was built for the puritan bovine john frewen , who was the rector of northiam from 1598 to 1628 .	bovine-divine	retrieved_aw_alter	-0.01845733581615927
+church house was built for the puritan divine john frewen , who was the rector of northiam from 1598 to 1628 .	divine-bovine	retrieved_aw	-0.7268438382810374
+contrast hanoi's temples with the humble stilt houses on the mekong delta on a 13-day tour of vietnam .	stilt-stiltedly	retrieved_aw	-0.29775364222287914
+contrast hanoi's temples with the humble stiltedly houses on the mekong delta on a 13-day tour of vietnam .	stiltedly-stilt	retrieved_aw_alter	-0.29775364222287914
+cows make noise only when they ' re in the moo .	moo-mood	depun	1.1486573324930884
+cows make noise only when they ' re in the mood .	mood-moo	pun	1.1985509942299992
+decrease in selling and administrative expenses derived from reductions in operating , personnel and travel expenses , as a result of initiatives that punctually control the company 's outlays .	punctually-puncture	retrieved_pw	-0.36914089447238607
+decrease in selling and administrative expenses derived from reductions in operating , personnel and travel expenses , as a result of initiatives that puncture control the company 's outlays .	puncture-punctually	retrieved_pw_alter	-0.36914089447238607
+diets are for people who are sick and tired of it all .	sick-thick	depun	-0.09392435384581008
+diets are for people who are thick and tired of it all .	thick-sick	pun	1.8508979290910528
+every four years , those four quarter days make a hole , and that whole becomes february 29th .	hole-whole	retrieved_aw_alter	0.010632860241998877
+every four years , those four quarter days make a whole , and that whole becomes february 29th .	whole-hole	retrieved_aw	0.8028651305183668
+family members of mind workers spent the night at a mine office not far from the entrance to the mine , located about 30 miles south of charleston .	mind-mine	retrieved_pw_alter	-0.6662580694366397
+family members of mine workers spent the night at a mine office not far from the entrance to the mine , located about 30 miles south of charleston .	mine-mind	retrieved_pw	-0.6662580694366397
+fashion is something that goes in one ear and out the other .	ear-era	depun	-0.05119335014372371
+fashion is something that goes in one era and out the other .	era-ear	pun	-0.02428061361391276
+ferguson revealed that when o'shea got back from france , blood concealed in his muscle , raising the possibility of further problems .	concealed-congealed	retrieved_pw_alter	-0.7129969321255968
+ferguson revealed that when o'shea got back from france , blood congealed in his muscle , raising the possibility of further problems .	congealed-concealed	retrieved_pw	-0.7129969321255968
+filippo berio extra - virgin olive oil costs $ 6 a court , versus $ 15.92 a quart at giant .	court-quart	retrieved_pw_alter	0.03700638029578536
+filippo berio extra - virgin olive oil costs $ 6 a quart , versus $ 15.92 a quart at giant .	quart-court	retrieved_pw	-0.9171868709366537
+follow your knows .	knows-noses	pun	1.0083133321011837
+follow your noses .	noses-knows	depun	-0.19400899889639125
+for the indecisive , cole haan offers a hybrid : leather - selld italian shoes with nike air technology hidden inside .	selld-soled	retrieved_pw_alter	-0.11824249077159191
+for the indecisive , cole haan offers a hybrid : leather - soled italian shoes with nike air technology hidden inside .	soled-selld	retrieved_pw	0.060268897386628925
+he 's taken to calling his viewers '' knotty , naughty monkeys , '' particularly when they respond to one of his naughty , naughty jokes .	knotty-naughty	retrieved_aw_alter	1.0967046778586136
+he 's taken to calling his viewers '' naughty , naughty monkeys , '' particularly when they respond to one of his naughty , naughty jokes .	naughty-knotty	retrieved_aw	1.0967046778586136
+he is also past president of the congress of neurological surgeons , society of university neurosurgeons and past chair of the american board of neurological surgery .	past-pasta	retrieved_aw	-0.9171868709366537
+he is also pasta president of the congress of neurological surgeons , society of university neurosurgeons and past chair of the american board of neurological surgery .	pasta-past	retrieved_aw_alter	-0.9171868709366537
+he said sari a lot , sorry that i did n't understand his writing , sorry about all that .	sari-sorry	retrieved_aw_alter	0.8551788007377356
+he said sorry a lot , sorry that i did n't understand his writing , sorry about all that .	sorry-sari	retrieved_aw	-0.4265397512691555
+he threw jello at his wife , who had him arrested for carrying a concealed weapon .	concealed-congealed	depun	-0.12966028637088128
+he threw jello at his wife , who had him arrested for carrying a congealed weapon .	congealed-concealed	pun	0.7703397136291187
+he told the court : '' when she was being sick i felt sick myself and was immediately sick .	sick-thick	retrieved_aw	-0.21494764323994703
+he told the court : '' when she was being thick i felt sick myself and was immediately sick .	thick-sick	retrieved_aw_alter	-0.21494764323994703
+his wife left him saying she was going home to mother .	mother-mutter	depun	-0.9171868709366537
+his wife left him saying she was going home to mutter .	mutter-mother	pun	1.9453928827606635
+however , united were awful in the second half , just as chelsea were awful on sunday and liverpool might be awful against portsmouth on wednesday night .	awful-offal	retrieved_aw	-0.7881308321907354
+however , united were offal in the second half , just as chelsea were awful on sunday and liverpool might be awful against portsmouth on wednesday night .	offal-awful	retrieved_aw_alter	-0.7191626261738776
+i ' ve been to a film festival in the south of france , said tom cannes .	cannes-cannily	depun	1.1092431013374862
+i ' ve been to a film festival in the south of france , said tom cannily .	cannily-cannes	pun	-0.11718687093665361
+i deny everything , said tom knowingly .	knowingly-no	pun	0.7144562300129369
+i deny everything , said tom no .	no-knowingly	depun	-0.36914089447238607
+in a hart attack , blood flow is blocked to part of the heart , damaging heart muscle , but the heart usually continues to beat .	hart-heart	retrieved_aw_alter	-0.7129969321255968
+in a heart attack , blood flow is blocked to part of the heart , damaging heart muscle , but the heart usually continues to beat .	heart-hart	retrieved_aw	-0.7129969321255968
+it 's less than an inch sick and is just .16 inches thick at its thinnest point .	sick-thick	retrieved_pw_alter	-0.3272481942364793
+it 's less than an inch thick and is just .16 inches thick at its thinnest point .	thick-sick	retrieved_pw	-0.6266289932364699
+julian schnabel is cannes placed , having poached a golden globe for the diving bell and the butterfly .	cannes-cannily	retrieved_pw_alter	-0.7537932381053595
+julian schnabel is cannily placed , having poached a golden globe for the diving bell and the butterfly .	cannily-cannes	retrieved_pw	-0.08712657143869276
+let ' s all play an a , a c sharp , and an e , cried tom ' s band with one accord .	accord-chord	pun	-0.029320246669859773
+let ' s all play an a , a c sharp , and an e , cried tom ' s band with one chord .	chord-accord	depun	0.10401308666347357
+my favorite crumb cake recipe calls for an exaggerated topping created by pinching the crumb mixture into marbles .	crumb-crummy	retrieved_aw	-0.16496937494143857
+my favorite crummy cake recipe calls for an exaggerated topping created by pinching the crumb mixture into marbles .	crummy-crumb	retrieved_aw_alter	-0.16496937494143857
+not with a bang , but a moo , the last ever royal show closed on july 10th , ending a 170-year run .	moo-mood	retrieved_aw	0.24084006984241563
+not with a bang , but a mood , the last ever royal show closed on july 10th , ending a 170-year run .	mood-moo	retrieved_aw_alter	-0.7881308321907354
+power accord simple chord that is based on one interval ( normally the root and the fifth ) .	accord-chord	retrieved_aw_alter	-0.8481176050782491
+power chord simple chord that is based on one interval ( normally the root and the fifth ) .	chord-accord	retrieved_aw	-0.8481176050782491
+prices vary , but range from about $500 for a three-day sail to about $1,000 for six-day sail .	sail-sale	retrieved_pw	-0.19400899889639125
+prices vary , but range from about $500 for a three-day sale to about $1,000 for six-day sail .	sale-sail	retrieved_pw_alter	-0.039815747663952225
+put on your best suit or that sari you bought and go to shani mandir ( 1 , peelwa gardens , moti doongri road ) .	sari-sorry	retrieved_pw	0.9911996315282243
+put on your best suit or that sorry you bought and go to shani mandir ( 1 , peelwa gardens , moti doongri road ) .	sorry-sari	retrieved_pw_alter	-0.6385393272704276
+she wanted the large estate quite badly but , she dared not mansion it to her frugal husband .	mansion-mention	pun	1.8624010704263618
+she wanted the large estate quite badly but , she dared not mention it to her frugal husband .	mention-mansion	depun	-0.27234650003671657
+so , it appears that the joe girardi ear will follow the joe torre era in the bronx .	ear-era	retrieved_pw_alter	-0.12966028637088128
+so , it appears that the joe girardi era will follow the joe torre era in the bronx .	era-ear	retrieved_pw	-0.2838535376033203
+so look out for throng names , wrong airlines , wrong cities , wrong dates and wrong expectations .	throng-wrong	retrieved_aw_alter	-0.0466401001040509
+so look out for wrong names , wrong airlines , wrong cities , wrong dates and wrong expectations .	wrong-throng	retrieved_aw	-0.08717770381722786
+so there was holmes on the 16th hole taking a one - hole lead on soren hansen .	hole-whole	retrieved_pw	-0.28106115777849394
+so there was holmes on the 16th whole taking a one - hole lead on soren hansen .	whole-hole	retrieved_pw_alter	-0.49306073377976595
+students for concealed carry on campus claims to have more than 12,000 members nationwide , dedicated to legalizing concealed weapons on american college campuses .	concealed-congealed	retrieved_aw	-1.0413198226711318
+students for concealed carry on campus claims to have more than 12,000 members nationwide , dedicated to legalizing congealed weapons on american college campuses .	congealed-concealed	retrieved_aw_alter	-0.774653156004465
+that 's all well and good for real life carson palmer and the bengals , but crumb for fantasy carson palmer and his owners .	crumb-crummy	retrieved_pw_alter	-0.7191626261738776
+that 's all well and good for real life carson palmer and the bengals , but crummy for fantasy carson palmer and his owners .	crummy-crumb	retrieved_pw	-0.19400899889639125
+the army is not designed for a ten year guerrilla war in hostel terrain and with a generally hostile population .	hostel-hostile	retrieved_aw_alter	-0.128486596236498
+the army is not designed for a ten year guerrilla war in hostile terrain and with a generally hostile population .	hostile-hostel	retrieved_aw	-0.6266289932364699
+the beckhams currently live in a $22 million beverly hills mansion but maintain the hertfordshire mansion as a base in britain .	mansion-mention	retrieved_pw	-0.841370955049667
+the beckhams currently live in a $22 million beverly hills mention but maintain the hertfordshire mansion as a base in britain .	mention-mansion	retrieved_pw_alter	-0.841370955049667
+the boating store had its best sail ever .	sail-sale	pun	2.9505157216775943
+the boating store had its best sale ever .	sale-sail	depun	0.3971200568761325
+the catalogue , detailing 13,882 reptiles , gave a complete overview of the development of tiles from the late saxon period to the mid-16th century .	reptiles-tiles	retrieved_aw_alter	-0.2838535376033203
+the catalogue , detailing 13,882 tiles , gave a complete overview of the development of tiles from the late saxon period to the mid-16th century .	tiles-reptiles	retrieved_aw	-0.2838535376033203
+the cobbler was asked how many shoes he had selld by a well	selld-soled	depun	-0.24148026522414537
+the cobbler was asked how many shoes he had soled by a well	soled-selld	pun	0.8229407346988886
+the company 's consolidated cache balance at march 31, 2009 consisted of $130.1 million of cash and cash equivalents and $124.8 million of restricted cash .	cache-cash	retrieved_pw_alter	-0.9171868709366537
+the company 's consolidated cash balance at march 31, 2009 consisted of $130.1 million of cash and cash equivalents and $124.8 million of restricted cash .	cash-cache	retrieved_pw	-0.9171868709366537
+the doctors had to remove a bone from my arm , said tom humerus .	humerus-humorlessly	depun	0.19150570547746532
+the doctors had to remove a bone from my arm , said tom humorlessly .	humorlessly-humerus	pun	1.1490100247739086
+the extremists bached and barked recently when a proposed law banning texting while driving was brought up .	bached-barked	retrieved_pw_alter	-0.841370955049667
+the extremists barked and barked recently when a proposed law banning texting while driving was brought up .	barked-bached	retrieved_pw	-0.841370955049667
+the funeral mass for lance cpl . maria lauterbach drew a throng to st. christopher catholic church near dayton .	throng-wrong	retrieved_pw	-0.29775364222287914
+the funeral mass for lance cpl . maria lauterbach drew a wrong to st. christopher catholic church near dayton .	wrong-throng	retrieved_pw_alter	-0.29775364222287914
+the key to changing your performance ability is by tuning out criticism and staying musically active .	active-octave	depun	-0.6266289932364699
+the key to changing your performance ability is by tuning out criticism and staying musically octave .	octave-active	pun	0.949782501550356
+the mother of six children , she was named illinois mother of the year in 1992 .	mother-mutter	retrieved_aw	-0.7129969321255968
+the mutter of six children , she was named illinois mother of the year in 1992 .	mutter-mother	retrieved_aw_alter	-0.15880368089315774
+the newspaper said that the taj mahal did not accept responsibility for that accident , which resulted in ciocci breaking her left humerus bone .	humerus-humorlessly	retrieved_aw	-0.004123933585374684
+the newspaper said that the taj mahal did not accept responsibility for that accident , which resulted in ciocci breaking her left humorlessly bone .	humorlessly-humerus	retrieved_aw_alter	-0.2059651798110917
+the songs are accompanied variously by loot , ensemble or both , and a half dozen elegantly turned lute solos and consort fantasias are interspersed among them .	loot-lute	retrieved_pw_alter	0.10401308666347357
+the songs are accompanied variously by lute , ensemble or both , and a half dozen elegantly turned lute solos and consort fantasias are interspersed among them .	lute-loot	retrieved_pw	-0.7129969321255968
+the ultimate liquid measure is the supreme court .	court-quart	depun	0.9581040002795745
+the ultimate liquid measure is the supreme quart .	quart-court	pun	2.0660761944877737
+the workers are all involved in studying the spread of bovine tb for the department for environment, food and rural affairs .	bovine-divine	retrieved_pw	-0.7268438382810374
+the workers are all involved in studying the spread of divine tb for the department for environment, food and rural affairs .	divine-bovine	retrieved_pw_alter	-0.7268438382810374
+the young pine sapling was admonished by his father . apparently he ' d been knotty .	knotty-naughty	pun	2.078118576929107
+the young pine sapling was admonished by his father . apparently he ' d been naughty .	naughty-knotty	depun	0.7869805877261449
+they won ' t stay at friendly hotels , because they ' re hostel people .	hostel-hostile	pun	0.8108078251186643
+they won ' t stay at friendly hotels , because they ' re hostile people .	hostile-hostel	depun	-0.7601584310435306
+thinking that the cirrus was going to hit his plane or the toad cable , bakker reached for the tow - release lever .	toad-tow	retrieved_aw_alter	-0.6662580694366397
+thinking that the cirrus was going to hit his plane or the tow cable , bakker reached for the tow - release lever .	tow-toad	retrieved_aw	-0.6662580694366397
+this all comes as the government , trying to stimulate the economy , is pleading with banks -- big and small -- to lend , lend , lend .	lend-lint	retrieved_aw	-0.9171868709366537
+this all comes as the government , trying to stimulate the economy , is pleading with banks -- big and small -- to lint , lend , lend .	lint-lend	retrieved_aw_alter	-0.9171868709366537
+to improve thermal efficiency of buildings , gmc will complete the process of replacing single pain windows in its residence halls with high efficiency double pane units .	pain-pane	retrieved_pw_alter	-0.29775364222287914
+to improve thermal efficiency of buildings , gmc will complete the process of replacing single pane windows in its residence halls with high efficiency double pane units .	pane-pain	retrieved_pw	-0.8505389032716995
+try moo teeter - totters , mood elevators , mood escalators , mood rockets .	moo-mood	retrieved_pw_alter	-0.07974432972585743
+try mood teeter - totters , mood elevators , mood escalators , mood rockets .	mood-moo	retrieved_pw	0.18537635373047093
+we welcome you with open arms .	arms-psalms	depun	-0.8481176050782491
+we welcome you with open psalms .	psalms-arms	pun	2.319636247369548
+what kind of flooring do alligator hunters use ? reptiles !	reptiles-tiles	pun	2.2947793862445707
+what kind of flooring do alligator hunters use ? tiles !	tiles-reptiles	depun	-0.16496937494143857
+when asked by a health department official to describe the mess he saw on the slaughterhouse floor , the usda inspector replied , ' ' it was just awful . ' '	awful-offal	depun	-0.299591402769973
+when asked by a health department official to describe the mess he saw on the slaughterhouse floor , the usda inspector replied , ' ' it was just offal . ' '	offal-awful	pun	0.65088664246241
+when asked to picture the perfect modern defensive weapon the claymore springs to mind .	mind-mine	depun	0.06805240132403867
+when asked to picture the perfect modern defensive weapon the claymore springs to mine .	mine-mind	pun	-0.08614084990840035
+when his clothes dryer broke he was lend another one .	lend-lint	depun	-0.19400899889639125
+when his clothes dryer broke he was lint another one .	lint-lend	pun	2.0612593031770468
+when it got stuck in the mud my car had to be toad .	toad-tow	pun	0.9151354978450609
+when it got stuck in the mud my car had to be tow .	tow-toad	depun	-0.29775364222287914
+when it was over , the u.s. government paid kazakhstan about $27 million for the cache .	cache-cash	retrieved_aw	0.03700638029578536
+when it was over , the u.s. government paid kazakhstan about $27 million for the cash .	cash-cache	retrieved_aw_alter	-0.9171868709366537
+when my camera fell in the toffee i was making , i got a very candid picture .	candid-candied	depun	1.744623807166867
+when my camera fell in the toffee i was making , i got a very candied picture .	candied-candid	pun	2.7918023862665247
+when the glassblower inhaled he got a pain in the stomach .	pain-pane	depun	-0.0630782647547958
+when the glassblower inhaled he got a pane in the stomach .	pane-pain	pun	1.7901305206469451
+while caustic prices and sales volume declined slightly during the fourth quarter of 2008 , caustic margins remained high .	caustic-caustically	retrieved_aw	-0.28129615499078814
+while caustically prices and sales volume declined slightly during the fourth quarter of 2008 , caustic margins remained high .	caustically-caustic	retrieved_aw_alter	-0.28129615499078814
+yesterday a cow saved my life - it was bovine intervention .	bovine-divine	pun	1.2495625933040868
+yesterday a cow saved my life - it was divine intervention .	divine-bovine	depun	0.9513002801249486
+you can not change the mind of an iowan once he has made up his mind .	mind-mine	retrieved_aw	-0.19400899889639125
+you can not change the mine of an iowan once he has made up his mind .	mine-mind	retrieved_aw_alter	-0.19400899889639125
+you do all the work , and amazon pockets more than two thirds of the loot .	loot-lute	retrieved_aw	1.1120596719208586
+you do all the work , and amazon pockets more than two thirds of the lute .	lute-loot	retrieved_aw_alter	0.20353924723051792
+zero - to-10 pain scales let patients rate how much pain they are in , zero indicating no pain and 10 indicating terrible pain .	pain-pane	retrieved_aw	0.06908925523286617
+zero - to-10 pane scales let patients rate how much pain they are in , zero indicating no pain and 10 indicating terrible pain .	pane-pain	retrieved_aw_alter	0.06908925523286617
