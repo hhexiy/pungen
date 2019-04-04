@@ -30,6 +30,24 @@ def compose_collaborative_pun_hit(data_dict, key_filter, outfile, top_k=5):
             #print(type(contents), contents)
             outf.write(','.join(contents)+'\n')
 
+
+def compose_funniness_justin_data(dataset, outfile):
+    with open(outfile, 'w') as outf:
+        header = []
+        for i in range(10):
+            header.append('sentence_'+str(i+1))
+            header.append('sentence_info_'+str(i+1))
+        assert len(header) == 20
+        outf.write(','.join(header)+'\n')
+        for i, pair in enumerate(dataset):
+            print(pair)
+            outf.write(','.join(pair))
+            if (i+1)%10 == 0:
+                outf.write('\n')
+            else:
+                outf.write(',')
+
+
 def compose_funniness_anno_hit(names, outfile, *datasets):
     #names = ['pun', 'depun', 'retrieved_pw', 'retrieved_aw']
     indexes = list(range(len(names)))
@@ -126,6 +144,13 @@ def load_sentences(infile):
             contents.append('\"'+re.sub('\"', '\'\'', ' '.join(line.strip().split('\t')))+'\"')
     return contents
 
+def load_justin(infile):
+    contents = []
+    with open(infile) as inf:
+        for line in inf:
+            contents.append(('\"'+re.sub('\"', '\'\'', line.strip().split('\t')[0])+'\"', '\t'.join(line.strip().split('\t')[1:])))
+    return contents
+
 
 def load_human(infile):
     data_dict = dict()
@@ -156,7 +181,8 @@ def load_json(infile, top_k=1):
             aw = line['alter_word']
             ref = ' '.join(line['tokens'])
             #results = [(' '.join(item.get('output', [])), item.get('score', float("inf"))) for item in line['results']]
-            results = [(detokenize(item.get('output', [])), item.get('score', float("inf"))) for item in line['results']]
+            results = [(detokenize(lctx)+' # '+' # '.join(random.sample(item.get('topic_words', []), top_k//2)), random.random()) for item in line['results'] for lctx in item.get('local_contexts', [])] # + ' '.join([:5])
+            #results = [(detokenize(item.get('output', [])), item.get('score', float("inf"))) for item in line['results']]
             results = sorted(results, key=lambda x: x[1])[:top_k]
             results = ['"' + '\''.join(res[0].split('"'))+'"' for res in results]
             key = (pw, aw)
@@ -303,3 +329,7 @@ if __name__ == '__main__':
         # the actual order: incremental, title-to-text, title-keywords-text, human_story
         names = ['pun', 'depun', 'retrieved_pw', 'retrieved_pw_alter', 'retrieved_aw', 'retrieved_aw_alter']
         func(names, args.outfile, *sentences_array) 
+
+    if args.task == 'compose_funniness_justin_data':
+        sentences = load_justin(args.files[0])
+        func(sentences, args.outfile)
