@@ -1,3 +1,7 @@
+# Pun Generation with Surprise
+This repo contains code and data for the paper
+[Pun Generation with Surprise]().
+
 ## Requirements
 - Python 3.6
 - Pytorch 0.4
@@ -114,4 +118,15 @@ python generate_pun.py data/bookcorpus/edit/bin/data \
 	--outdir results/semeval/hetero/dev/rule \
 	--scorer random \
 	--max-num-examples 100
+```
+
+## Reference
+If you use the annotated SemEval pun dataset, please cite our paper:
+```
+@inproceedings{he2019pun,
+    title={Pun Generation with Surprise},
+    author={He He and Nanyun Peng and Percy Liang},
+    booktitle={North American Association for Computational Linguistics (NAACL)},
+    year={2019}
+}
 ```
