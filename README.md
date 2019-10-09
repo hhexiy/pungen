@@ -1,6 +1,6 @@
 # Pun Generation with Surprise
 This repo contains code and data for the paper
-[Pun Generation with Surprise]().
+[Pun Generation with Surprise](https://arxiv.org/abs/1904.06828).
 
 ## Requirements
 - Python 3.6
